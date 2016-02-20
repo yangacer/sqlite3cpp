@@ -4,12 +4,12 @@
 
 TEST(basic, construct) {
     using namespace sqlite3cpp;
-    database d("test.db");
+    database d(":memory:");
 }
 
 TEST(basic, query) {
     using namespace sqlite3cpp;
-    database db("test.db");
+    database db(":memory:");
     auto c = db.make_cursor();
 
     c.executescript(
@@ -34,19 +34,18 @@ TEST(basic, query) {
         ASSERT_STREQ("test2", b.c_str());
         std::cout << idx++ << ": " << a << "," << b << "\n";
     }
-    ::remove("test.db");
 }
 
 
 TEST(basic, wrap_function) {
     std::function<int(int)> c;
-    auto f = sqlite3cpp::sqlval2cpp::make_invoker(c);
+    auto f = sqlite3cpp::detail::make_invoker(c);
 }
 
 
 TEST(basic, create_scalar) {
     using namespace sqlite3cpp;
-    database db("test.db");
+    database db(":memory:");
     auto c = db.make_cursor();
 
     c.executescript(
@@ -74,5 +73,4 @@ TEST(basic, create_scalar) {
         ASSERT_EQ(expected[idx], a);
         std::cout << idx++ << ": " << a << "\n";
     }
-    ::remove("test.db");
 }
