@@ -27,14 +27,12 @@ TEST(basic, query) {
 
     int idx = 0;
     for(auto const &row : c.execute(query, 1, 3, pattern)) {
-        auto cols = row.get<int, std::string>();
+        int a; std::string b;
+        std::tie(a, b) = row.get<int, std::string>();
 
-        ASSERT_EQ(2, std::get<0>(cols));
-        ASSERT_STREQ("test2", std::get<1>(cols).c_str());
-
-        std::cout << idx++ << ": " <<
-            std::get<0>(cols) << "," <<
-            std::get<1>(cols) << "\n";
+        ASSERT_EQ(2, a);
+        ASSERT_STREQ("test2", b.c_str());
+        std::cout << idx++ << ": " << a << "," << b << "\n";
     }
     ::remove("test.db");
 }
