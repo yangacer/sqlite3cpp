@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
+#include <list>
 
 extern "C" {
 #include "sqlite3.h" 
@@ -170,13 +171,78 @@ private:
     std::unique_ptr<sqlite3_stmt, statement_deleter> m_stmt;
 };
 
+namespace sqlval2cpp {
+
+using cb_t = std::function<void(sqlite3_context*, sqlite3_value **)>;
+template<typename T> struct Type{};
+
+inline int get(Type<int>, sqlite3_value** v, int const index)
+{ return sqlite3_value_int(v[index]); }
+
+inline std::string get(Type<std::string>, sqlite3_value **v, int const index)
+{ return std::string((char const *)sqlite3_value_text(v[index]), (size_t)sqlite3_value_bytes(v[index])); }
+
+inline void result(int val, sqlite3_context *ctx)
+{ sqlite3_result_int(ctx, val); }
+
+inline void result(std::string const &val, sqlite3_context *ctx)
+{ sqlite3_result_text(ctx, val.c_str(), val.size(), SQLITE_TRANSIENT); }
+
+template<int...> struct indexes { typedef indexes type; };
+template<int Max, int...Is> struct make_indexes : make_indexes<Max-1, Max-1, Is...>{};
+template<int... Is> struct make_indexes<0, Is...> : indexes<Is...>{};
+template<int Max> using make_indexes_t=typename make_indexes<Max>::type;
+ 
+template<typename R, typename ...Args, int ...Is>
+R invoke(std::function<R(Args...)> func, sqlite3_value **argv, indexes<Is...>) {
+    return func( get(Type<Args>{}, argv, Is)... ); 
+}
+
+template<typename R, typename... Args>
+R invoke( std::function<R(Args...)> func, sqlite3_value **argv) {
+    return invoke(func, argv, make_indexes_t<sizeof...(Args)>{} );
+}
+
+template<typename R, typename ...Args>
+cb_t make_invoker(std::function<R(Args...)> func)
+{
+    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
+        result(invoke(func, argv), ctx);
+    };
+}
+} // namespace sqlval2cpp
+
 struct database
 {
     database(std::string const &urn);
     cursor make_cursor() const;
     sqlite3 *get() const { return m_instance.get(); }
+
+    template<typename R, typename ... Args>
+    void create_scalar(std::string const &name, std::function<R(Args...)> func)
+    {
+        using namespace sqlval2cpp;
+
+        m_scalars.push_back(make_invoker(func));
+        sqlite3_create_function(
+          m_instance.get(),
+          name.c_str(),
+          sizeof...(Args),
+          SQLITE_UTF8,
+          (void*)&m_scalars.back(),
+          &database::forward,
+          0, 0);
+    }
+
 private:
+    static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+    {
+        auto *cb = (sqlval2cpp::cb_t*)sqlite3_user_data(ctx);
+        (*cb)(ctx, argv);
+    }
+
     std::unique_ptr<sqlite3, database_deleter> m_instance;
+    std::list<sqlval2cpp::cb_t> m_scalars;
 };
 
-}
+} // namespace sqlite3cpp

@@ -39,7 +39,13 @@ TEST(basic, query) {
     ::remove("test.db");
 }
 
-/*
+
+TEST(basic, wrap_function) {
+    std::function<int(int)> c;
+    auto f = sqlite3cpp::sqlval2cpp::make_invoker(c);
+}
+
+
 TEST(basic, create_scalar) {
     using namespace sqlite3cpp;
     database db("test.db");
@@ -56,19 +62,19 @@ TEST(basic, create_scalar) {
       );
 
     int x = 123;
-    db.create_scalar("plus123", [&x](int input) -> int{
+    std::function<int(int)> func = [&x](int input) {
         return x + input;
-    });
+    };
+
+    db.create_scalar("plus123", func);
 
     char const *query = "select plus123(a) from T;";
 
     int idx = 0;
     for(auto const &row : c.execute(query)) {
-        auto cols = row.get<int, std::string>();
+        auto cols = row.get<int>();
         std::cout << idx++ << ": " <<
-            std::get<0>(cols) << "," <<
-            std::get<1>(cols) << "\n";
+            std::get<0>(cols) << "\n";
     }
     ::remove("test.db");
 }
-*/
