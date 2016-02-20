@@ -28,6 +28,10 @@ TEST(basic, query) {
     int idx = 0;
     for(auto const &row : c.execute(query, 1, 3, pattern)) {
         auto cols = row.get<int, std::string>();
+
+        ASSERT_EQ(2, std::get<0>(cols));
+        ASSERT_STREQ("test2", std::get<1>(cols).c_str());
+
         std::cout << idx++ << ": " <<
             std::get<0>(cols) << "," <<
             std::get<1>(cols) << "\n";
@@ -35,6 +39,7 @@ TEST(basic, query) {
     ::remove("test.db");
 }
 
+/*
 TEST(basic, create_scalar) {
     using namespace sqlite3cpp;
     database db("test.db");
@@ -66,3 +71,4 @@ TEST(basic, create_scalar) {
     }
     ::remove("test.db");
 }
+*/
