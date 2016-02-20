@@ -68,10 +68,11 @@ TEST(basic, create_scalar) {
     char const *query = "select plus123(a) from T;";
 
     int idx = 0;
+    int expected[] = { 123+1, 123+2, 123+2, 123+3 };
     for(auto const &row : c.execute(query)) {
-        auto cols = row.get<int>();
-        std::cout << idx++ << ": " <<
-            std::get<0>(cols) << "\n";
+        int a = std::get<0>(row.get<int>());
+        ASSERT_EQ(expected[idx], a);
+        std::cout << idx++ << ": " << a << "\n";
     }
     ::remove("test.db");
 }
