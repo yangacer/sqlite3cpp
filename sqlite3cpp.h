@@ -27,7 +27,6 @@ struct statement_deleter {
     }
 };
 
-
 void get_col_val(sqlite3_stmt *stmt, int index, int& val)
 { val = sqlite3_column_int(stmt, index); }
 
@@ -203,7 +202,21 @@ R invoke( std::function<R(Args...)> func, sqlite3_value **argv) {
     return invoke(func, argv, make_indexes_t<sizeof...(Args)>{} );
 }
 
-template<typename R, typename ...Args>
+// For generic types that are functors, delegate to its 'operator()'
+template <typename T>
+struct function_traits
+    : public function_traits<decltype(&T::operator())>
+{};
+
+// for pointers to member function
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType(ClassType::*)(Args...) const> {
+    typedef std::function<ReturnType (Args...)> f_type;
+    static const size_t arity = sizeof...(Args);
+};
+
+
+template<typename R, typename ... Args>
 cb_t make_invoker(std::function<R(Args...)> func)
 {
     return [func](sqlite3_context *ctx, sqlite3_value **argv) {
@@ -218,16 +231,18 @@ struct database
     cursor make_cursor() const;
     sqlite3 *get() const { return m_instance.get(); }
 
-    template<typename R, typename ... Args>
-    void create_scalar(std::string const &name, std::function<R(Args...)> func)
+    template<typename FUNC>
+    void create_scalar(std::string const &name, FUNC func)
     {
         using namespace sqlval2cpp;
+        using traits = function_traits<FUNC>;
+        typename traits::f_type stdfunc(func);
 
-        m_scalars.push_back(make_invoker(func));
+        m_scalars.push_back(make_invoker(stdfunc));
         sqlite3_create_function(
           m_instance.get(),
           name.c_str(),
-          sizeof...(Args),
+          (int)traits::arity,
           SQLITE_UTF8,
           (void*)&m_scalars.back(),
           &database::forward,

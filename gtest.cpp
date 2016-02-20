@@ -22,8 +22,8 @@ TEST(basic, query) {
       "commit;"
       );
 
-    std::string pattern = "test%";
     char const *query = "select * from T where a > ? and a < ? and b like ?";
+    std::string pattern = "test%";
 
     int idx = 0;
     for(auto const &row : c.execute(query, 1, 3, pattern)) {
@@ -60,11 +60,10 @@ TEST(basic, create_scalar) {
       );
 
     int x = 123;
-    std::function<int(int)> func = [&x](int input) {
-        return x + input;
-    };
 
-    db.create_scalar("plus123", func);
+    db.create_scalar("plus123", [&x](int input) {
+        return x + input;
+    });
 
     char const *query = "select plus123(a) from T;";
 
