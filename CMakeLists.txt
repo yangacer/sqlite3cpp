@@ -8,13 +8,17 @@ HunterGate(
 
 project(sqlite3cpp VERSION 0.1.0)
 
+hunter_add_package(GTest)
+hunter_add_package(SQLite3)
+
+find_package(GTest CONFIG REQUIRED)
+
+
 add_library(sqlite3cpp SHARED sqlite3cpp.cpp)
 target_link_libraries(sqlite3cpp PUBLIC sqlite3)
 set_property(TARGET sqlite3cpp PROPERTY CXX_STANDARD 14)
 
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
 add_executable(gtest gtest.cpp)
 set_property(TARGET gtest PROPERTY CXX_STANDARD 14)
-target_link_libraries(gtest PUBLIC GTest::main sqlite3cpp)
+target_link_libraries(gtest PUBLIC GTest::main sqlite3cpp )
 

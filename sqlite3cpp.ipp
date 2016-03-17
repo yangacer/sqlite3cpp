@@ -72,13 +72,13 @@ private:
 /*
  * Helpers for binding values to sqlite3_stmt.
  */
-void bind_to_stmt(sqlite3_stmt *stmt, int i){}
+inline void bind_to_stmt(sqlite3_stmt *stmt, int i){}
 
-int bind_val(sqlite3_stmt *stmt, int index, int val) {
+inline int bind_val(sqlite3_stmt *stmt, int index, int val) {
     return sqlite3_bind_int(stmt, index, val);
 }
 
-int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
+inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
     return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
 }
 

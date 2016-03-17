@@ -3,10 +3,7 @@
 #include <memory>
 #include <string>
 #include <cstdint>
-
-extern "C" {
 #include "sqlite3.h" 
-}
 
 #ifndef SQLITE_DETERMINISTIC
 #define SQLITE_DETERMINISTIC 0

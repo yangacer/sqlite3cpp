@@ -51,8 +51,8 @@ TEST_F(DBTest, query) {
         int a; std::string b;
         std::tie(a, b) = row.get<int, std::string>();
 
-        ASSERT_EQ(2, a);
-        ASSERT_STREQ("test2", b.c_str());
+        EXPECT_EQ(2, a);
+        EXPECT_STREQ("test2", b.c_str());
         std::cout << idx++ << ": " << a << "," << b << "\n";
     }
 }
@@ -113,8 +113,8 @@ TEST_F(DBTest, create_scalar) {
     for(auto const &row : c.execute(query)) {
         int a, b;
         std::tie(a, b) = row.get<int, int>();
-        ASSERT_EQ(expected[idx][0], a);
-        ASSERT_EQ(expected[idx][1], b);
+        EXPECT_EQ(expected[idx][0], a);
+        EXPECT_EQ(expected[idx][1], b);
         std::cout << idx++ << ": " << a << ", " << b << "\n";
     }
 }
@@ -124,21 +124,19 @@ TEST_F(DBTest, create_aggregate) {
     using namespace sqlite3cpp;
 
     struct stdev {
-        stdev() : m_cnt(0), m_sum(0) {}
+        stdev() : m_cnt(0), m_sum(0), m_sq_sum(0) {}
         void step(int val) {
+            m_cnt ++;
             m_sum += val;
-            m_vals.push_back(val);
+            m_sq_sum += val * val;
 
         }
         double finalize() {
-            auto avg = (double)m_sum / m_vals.size();
-            double part = 0;
-            for (auto i : m_vals)
-                part += (i - avg) * (i - avg);
-            return std::sqrt(part / m_vals.size()-1);
+            auto avg = (double)m_sum / m_cnt;
+            return std::sqrt((double)(m_sq_sum - avg * avg * m_cnt) / (m_cnt -1));
         }
-        int m_sum;
-        std::vector<int> m_vals;
+        size_t m_cnt;
+        int m_sum, m_sq_sum;
     };
 
     basic_dataset().create_aggregate<stdev>("stdev");
@@ -148,8 +146,7 @@ TEST_F(DBTest, create_aggregate) {
     for(auto const &row : c.execute(query)) {
         double a;
         std::tie(a) = row.get<double>();
-        std::cout << a << std::endl;
-        ASSERT_EQ(0.707107, a);
+        EXPECT_DOUBLE_EQ(0.81649658092772603, a);
     }
 }
 
