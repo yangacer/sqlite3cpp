@@ -5,21 +5,6 @@
 namespace sqlite3cpp {
 
 /**
- * Deleters impl.
- */
-void database_deleter::operator()(sqlite3 *mem) const
-{
-    if (sqlite3_close(mem))
-        throw std::runtime_error("close database failure");
-}
-
-void statement_deleter::operator()(sqlite3_stmt *mem) const
-{
-    if(sqlite3_finalize(mem))
-        throw std::runtime_error("finalize database failed");
-}
-
-/**
  * row impl
  */
 row::row(cursor &csr)
@@ -36,7 +21,7 @@ bool row_iter::operator ==(row_iter const &i) const
 { return &m_csr == &i.m_csr && m_csr.get() == nullptr; }
 
 bool row_iter::operator !=(row_iter const &i) const
-{ return !(this->operator==(i)); }
+{ return !(*this == i); }
 
 /**
  * cursor impl
@@ -73,7 +58,7 @@ database::database(std::string const &urn)
         assert(i == 0);
         throw std::runtime_error("open database failure");
     }
-    m_instance.reset(i);
+    m_db.reset(i);
 }
 
 cursor database::make_cursor() const

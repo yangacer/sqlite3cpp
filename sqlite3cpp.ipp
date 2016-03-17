@@ -1,3 +1,21 @@
+#include <type_traits>
+
+namespace sqlite3cpp {
+namespace detail {
+
+template<int>
+struct placeholder_tmpl{};
+
+}} // namespace sqlite3cpp::detail
+
+// custome placeholders
+namespace std {
+    template<int N>
+    struct is_placeholder<sqlite3cpp::detail::placeholder_tmpl<N>>
+    : integral_constant<int, N+1>
+    {};
+}
+
 namespace sqlite3cpp {
 namespace detail {
 
@@ -34,6 +52,9 @@ void foreach_tuple_element(tuple_type & t, F f)
  */
 inline void get_col_val(sqlite3_stmt *stmt, int index, int& val)
 { val = sqlite3_column_int(stmt, index); }
+
+inline void get_col_val(sqlite3_stmt *stmt, int index, double& val)
+{ val = sqlite3_column_double(stmt, index); }
 
 inline void get_col_val(sqlite3_stmt *stmt, int index, std::string &val)
 { val = (char const *)sqlite3_column_text(stmt, index); }
@@ -73,8 +94,12 @@ void bind_to_stmt(sqlite3_stmt *stmt, int index, T val, Args&& ... args)
  * Helpers for converting value from sqlite3_value.
  */
 template<typename T> struct Type{};
+
 inline int get(Type<int>, sqlite3_value** v, int const index)
 { return sqlite3_value_int(v[index]); }
+
+inline double get(Type<double>, sqlite3_value** v, int const index)
+{ return sqlite3_value_double(v[index]); }
 
 inline std::string get(Type<std::string>, sqlite3_value **v, int const index)
 { return std::string((char const *)sqlite3_value_text(v[index]), (size_t)sqlite3_value_bytes(v[index])); }
@@ -84,6 +109,9 @@ inline std::string get(Type<std::string>, sqlite3_value **v, int const index)
  */
 inline void result(int val, sqlite3_context *ctx)
 { sqlite3_result_int(ctx, val); }
+
+inline void result(double val, sqlite3_context *ctx)
+{ sqlite3_result_double(ctx, val); }
 
 inline void result(std::string const &val, sqlite3_context *ctx)
 { sqlite3_result_text(ctx, val.c_str(), val.size(), SQLITE_TRANSIENT); }
@@ -108,6 +136,25 @@ R invoke( std::function<R(Args...)> func, sqlite3_value **argv) {
     return invoke(func, argv, make_indexes_t<sizeof...(Args)>{} );
 }
 
+template<typename R, typename ... Args>
+database::xfunc_t
+make_invoker(std::function<R(Args...)>&& func)
+{
+    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
+        result(invoke(func, argv), ctx);
+    };
+}
+
+template<typename ... Args>
+database::xfunc_t
+make_invoker(std::function<void(Args...)>&& func)
+{
+    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
+        invoke(func, argv);
+    };
+}
+
+
 /**
  * Function traits for supporting lambda.
  */
@@ -118,19 +165,33 @@ struct function_traits
 {};
 
 // for pointers to member function
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...) const> {
-    typedef std::function<ReturnType (Args...)> f_type;
+template <typename C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...)> {
+    typedef std::function<R (Args...)> f_type;
     static const size_t arity = sizeof...(Args);
 };
 
-template<typename R, typename ... Args>
-database::scalar_callback_t
-make_invoker(std::function<R(Args...)> func)
-{
-    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
-        result(invoke(func, argv), ctx);
-    };
+// for pointers to const member function
+template <typename C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...) const> {
+    typedef std::function<R (Args...)> f_type;
+    static const size_t arity = sizeof...(Args);
+};
+
+/**
+ * Member function binder helpers (auto expand by passed function prototype)
+ */
+template<typename F, typename C, int ... Is>
+typename function_traits<F>::f_type
+bind_this(F f, C *this_, indexes<Is...>) {
+    return std::bind(f, this_, placeholder_tmpl<Is>{}...);
+}
+
+template<typename F, typename C>
+typename function_traits<F>::f_type
+bind_this(F f, C *this_) {
+    using traits = function_traits<F>;
+    return bind_this(f, this_, make_indexes_t<traits::arity>{});
 }
 
 }} // namespace sqlite3cpp::detail
@@ -160,6 +221,7 @@ cursor& cursor::execute(std::string const &sql, Args&& ... args)
     }
     m_stmt.reset(stmt);
     detail::bind_to_stmt(m_stmt.get(), 1, std::forward<Args>(args)...);
+    step();
     return *this;
 }
 
@@ -167,21 +229,61 @@ cursor& cursor::execute(std::string const &sql, Args&& ... args)
  * database impl
  */
 template<typename FUNC>
-void database::create_scalar(std::string const &name, FUNC func)
+void database::create_scalar(std::string const &name, FUNC&& func,
+                             int flags)
 {
     using traits = detail::function_traits<FUNC>;
-    typename traits::f_type stdfunc(func);
 
-    m_scalars.push_back(detail::make_invoker(stdfunc));
-    sqlite3_create_function(
-      m_instance.get(),
+    auto *xfunc_ptr =
+        new xfunc_t(detail::make_invoker(typename traits::f_type(func)));
+
+    if(sqlite3_create_function_v2(
+      m_db.get(),
       name.c_str(),
       (int)traits::arity,
-      SQLITE_UTF8,
-      (void*)&m_scalars.back(),
+      flags,
+      (void*)xfunc_ptr,
       &database::forward,
-      0, 0);
+      0, 0,
+      &dispose))
+    {
+        delete xfunc_ptr;
+        throw std::runtime_error("create_function failure");
+    }
 }
 
+template<typename AG>
+void database::create_aggregate(std::string const &name,
+                                int flags)
+{
+    using detail::make_invoker;
+    using detail::bind_this;
+    using detail::result;
+    using traits = detail::function_traits<
+        decltype(&AG::step)>;
+
+    aggregate_wrapper_t *wrapper = new aggregate_wrapper_t;
+    AG *inst = new AG;
+    wrapper->reset = [inst]() { *inst = AG(); };
+    wrapper->release = [inst]() { delete inst; };
+    wrapper->step = make_invoker(bind_this(&AG::step, inst));
+    wrapper->fin = [inst](sqlite3_context* ctx) { result(inst->finalize(), ctx); };
+
+    if(sqlite3_create_function_v2(
+        m_db.get(),
+        name.c_str(),
+        (int)traits::arity,
+        flags,
+        (void*)wrapper,
+        0,
+        &step_ag,
+        &final_ag,
+        &dispose_ag))
+    {
+        delete inst;
+        delete wrapper;
+        throw std::runtime_error("create_aggregate failure");
+    }
+}
 
 } // namespace sqlite3cpp
