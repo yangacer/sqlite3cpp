@@ -49,7 +49,7 @@ struct row_iter
 private:
     friend struct cursor;
     row_iter() : m_csr(nullptr) {}
-    row_iter(cursor &csr) : m_csr(&csr) {}
+    row_iter(cursor &csr);
     cursor *m_csr;
 };
 

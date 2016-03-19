@@ -40,6 +40,24 @@ TEST(basic, construct) {
     database d(":memory:");
 }
 
+TEST_F(DBTest, row_iter) {
+    using namespace sqlite3cpp;
+
+    auto c = basic_dataset().make_cursor();
+
+    c.executescript("create table Empty (a);");
+    c.execute("select * from Empty");
+
+    EXPECT_EQ(c.begin(), c.end());
+
+    c.execute("insert into Empty values(?)", 123);
+    c.execute("select * from Empty");
+
+    EXPECT_NE(c.begin(), c.end());
+    EXPECT_EQ(++c.begin(), c.end());
+    EXPECT_EQ(c.begin(), c.end());
+}
+
 TEST_F(DBTest, query) {
     using namespace sqlite3cpp;
     auto c = basic_dataset().make_cursor();

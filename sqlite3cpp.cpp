@@ -14,6 +14,10 @@ row::row(cursor &csr)
 /**
  * row_iter impl
  */
+row_iter::row_iter(cursor &csr) : m_csr(&csr) {
+    if (!m_csr->get()) m_csr = nullptr;
+}
+
 row_iter &row_iter::operator++() {
     m_csr->step();
     if(!m_csr->get()) m_csr = nullptr;
