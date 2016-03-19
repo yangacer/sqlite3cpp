@@ -14,11 +14,14 @@ row::row(cursor &csr)
 /**
  * row_iter impl
  */
-row_iter &row_iter::operator++()
-{ m_csr.step(); return *this; }
+row_iter &row_iter::operator++() {
+    m_csr->step();
+    if(!m_csr->get()) m_csr = nullptr;
+    return *this;
+}
 
-bool row_iter::operator ==(row_iter const &i) const
-{ return &m_csr == &i.m_csr && m_csr.get() == nullptr; }
+bool row_iter::operator == (row_iter const &i) const
+{ return m_csr == i.m_csr; }
 
 bool row_iter::operator !=(row_iter const &i) const
 { return !(*this == i); }
@@ -66,5 +69,31 @@ cursor database::make_cursor() const
     return cursor(*this);
 }
 
+void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    auto *cb = (xfunc_t*)sqlite3_user_data(ctx);
+    (*cb)(ctx, argv);
+}
+
+void database::dispose(void *user_data) {
+    auto *cb = (xfunc_t*)user_data;
+    delete cb;
+}
+
+void database::step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
+    wrapper->step(ctx, argv);
+}
+
+void database::final_ag(sqlite3_context *ctx) {
+    auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
+    wrapper->fin(ctx);
+    wrapper->reset();
+}
+
+void database::dispose_ag(void *user_data) {
+    auto *wrapper = (aggregate_wrapper_t*)user_data;
+    wrapper->release();
+    delete wrapper;
+}
 } // namespace sqlite3cpp
 

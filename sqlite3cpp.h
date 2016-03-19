@@ -45,11 +45,12 @@ struct row_iter
     row_iter &operator++();
     bool operator == (row_iter const &i) const;
     bool operator != (row_iter const &i) const;
-    row operator*() const { return row(m_csr); }
+    row operator*() const { return row(*m_csr); }
 private:
     friend struct cursor;
-    row_iter(cursor &csr) : m_csr(csr) {}
-    cursor &m_csr;
+    row_iter() : m_csr(nullptr) {}
+    row_iter(cursor &csr) : m_csr(&csr) {}
+    cursor *m_csr;
 };
 
 struct cursor
@@ -60,7 +61,7 @@ struct cursor
     void executescript(std::string const &sql);
 
     row_iter begin() { return row_iter(*this); }
-    row_iter end()   { return row_iter(*this); }
+    row_iter end()   { return row_iter(); }
 
     sqlite3_stmt *get() const { return m_stmt.get(); }
 
@@ -75,8 +76,7 @@ private:
 
 struct database
 {
-    using xfunc_t = std::function<void(sqlite3_context*,
-                                       sqlite3_value **)>;
+    using xfunc_t = std::function<void(sqlite3_context*, sqlite3_value **)>;
     using xfinal_t = std::function<void(sqlite3_context*)>;
     using xreset_t = std::function<void()>;
 
@@ -96,18 +96,6 @@ struct database
 
 private:
 
-    static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv)
-    {
-        auto *cb = (xfunc_t*)sqlite3_user_data(ctx);
-        (*cb)(ctx, argv);
-    }
-
-    static void dispose(void *user_data)
-    {
-        auto *cb = (xfunc_t*)user_data;
-        delete cb;
-    }
-
     struct aggregate_wrapper_t {
         xfunc_t step;
         xfinal_t fin;
@@ -115,24 +103,11 @@ private:
         xreset_t release;
     };
 
-    static void step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv)
-    {
-        auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
-        wrapper->step(ctx, argv);
-    }
-
-    static void final_ag(sqlite3_context *ctx)
-    {
-        auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
-        wrapper->fin(ctx);
-        wrapper->reset();
-    }
-
-    static void dispose_ag(void *user_data) {
-        auto *wrapper = (aggregate_wrapper_t*)user_data;
-        wrapper->release();
-        delete wrapper;
-    }
+    static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void dispose(void *user_data);
+    static void step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void final_ag(sqlite3_context *ctx);
+    static void dispose_ag(void *user_data);
 
     std::unique_ptr<sqlite3, sqlite3_deleter> m_db;
 };
