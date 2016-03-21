@@ -6,6 +6,11 @@ namespace detail {
 template<int>
 struct placeholder_tmpl{};
 
+template<int...> struct indexes { typedef indexes type; };
+template<int Max, int...Is> struct make_indexes : make_indexes<Max-1, Max-1, Is...>{};
+template<int... Is> struct make_indexes<0, Is...> : indexes<Is...>{};
+template<int Max> using make_indexes_t=typename make_indexes<Max>::type;
+ 
 }} // namespace sqlite3cpp::detail
 
 // custome placeholders
@@ -82,6 +87,10 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
     return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
 }
 
+inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
+    return sqlite3_bind_null(stmt, index);
+}
+
 template <typename T, typename ... Args>
 void bind_to_stmt(sqlite3_stmt *stmt, int index, T val, Args&& ... args)
 {
@@ -120,11 +129,6 @@ inline void result(std::string const &val, sqlite3_context *ctx)
  * Magic for typesafe invoking lambda/std::function from sqlite3
  * (registered via sqlite3_create_function).
  */
-template<int...> struct indexes { typedef indexes type; };
-template<int Max, int...Is> struct make_indexes : make_indexes<Max-1, Max-1, Is...>{};
-template<int... Is> struct make_indexes<0, Is...> : indexes<Is...>{};
-template<int Max> using make_indexes_t=typename make_indexes<Max>::type;
- 
 template<typename R, typename ...Args, int ...Is>
 R invoke(std::function<R(Args...)> func, sqlite3_value **argv, indexes<Is...>) {
     // Expand argv per index

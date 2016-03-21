@@ -58,6 +58,18 @@ TEST_F(DBTest, row_iter) {
     EXPECT_EQ(c.begin(), c.end());
 }
 
+TEST_F(DBTest, bind_null) {
+    auto c = basic_dataset().make_cursor();
+
+    c.execute("create table T2 (a);");
+    c.execute("insert into T2 values(?)", nullptr);
+    c.execute("select count(*) from T2 where a is NULL");
+
+    int cnt = 0;
+    std::tie(cnt) = c.begin()->get<int>();
+    EXPECT_EQ(1, cnt);
+}
+
 TEST_F(DBTest, query) {
     using namespace sqlite3cpp;
     auto c = basic_dataset().make_cursor();

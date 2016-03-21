@@ -11,9 +11,7 @@
 
 #define C_STYLE_DELETER(T, F) \
     struct T##_deleter {\
-        void operator()(T* mem) const {\
-            if (F(mem)) throw std::runtime_error("delete "#T" failure");\
-        } \
+        void operator()(T* mem) const { F(mem); } \
     }
 
 namespace sqlite3cpp {
@@ -36,7 +34,7 @@ struct row
     std::tuple<Cols...> get() const;
 private:
     friend struct row_iter;
-    row(cursor &csr);
+    row() : m_stmt(nullptr) {}
     sqlite3_stmt *m_stmt;
 };
 
@@ -45,12 +43,14 @@ struct row_iter
     row_iter &operator++();
     bool operator == (row_iter const &i) const;
     bool operator != (row_iter const &i) const;
-    row operator*() const { return row(*m_csr); }
+    row const &operator*() const { return m_row; }
+    row const *operator->() const { return &m_row; }
 private:
     friend struct cursor;
     row_iter() : m_csr(nullptr) {}
     row_iter(cursor &csr);
     cursor *m_csr;
+    row m_row;
 };
 
 struct cursor

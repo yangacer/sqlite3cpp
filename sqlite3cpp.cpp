@@ -4,18 +4,15 @@
 
 namespace sqlite3cpp {
 
-/**
- * row impl
- */
-row::row(cursor &csr)
-    :m_stmt(csr.get())
-{}
 
 /**
  * row_iter impl
  */
 row_iter::row_iter(cursor &csr) : m_csr(&csr) {
-    if (!m_csr->get()) m_csr = nullptr;
+    if(!m_csr->get())
+        m_csr = nullptr;
+    else
+        m_row.m_stmt = m_csr->get();
 }
 
 row_iter &row_iter::operator++() {
