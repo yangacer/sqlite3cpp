@@ -5,7 +5,7 @@ compiler:
 before_install:
     - sudo apt-get install libsqlite3-dev cmake valgrind
 script:
-    - cmake . -DCMAKE_BUILD_TYPE=Debug -DCOVERSALL=ON
+    - cmake . -DCMAKE_BUILD_TYPE=Debug -DCOVERALLS=ON
     - make
-    - make coversall
+    - make coveralls
     - valgrind --leak-check=full ctest -V # Make sure tests are executed corretly and logged with "-V"
