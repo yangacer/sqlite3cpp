@@ -150,4 +150,6 @@ for(auto const &row : c) {
 }
 
 ```
-
+> **WARNING**: Lifetime of sqlite3_stmt * ends when the associated cursor
+> reaching end of results (SQLITE_DONE). Consequntly the pointer becomes a
+> dangling one. Please use it with caution.
