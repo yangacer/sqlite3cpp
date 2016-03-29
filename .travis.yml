@@ -1,0 +1,10 @@
+language: cpp
+dist: trusty
+compiler:
+    - gcc
+before_install:
+    - sudo apt-get install libsqlite3-dev cmake valgrind
+script:
+    - cmake .
+    - make
+    - valgrind --leak-check=full ./gtest --gtest_shuffle --gtest_repeat=2
