@@ -5,10 +5,16 @@
 namespace sqlite3cpp {
 
 
+char const *error::what() const noexcept {
+    return sqlite3_errstr(code);
+}
+
 /**
  * row_iter impl
  */
-row_iter::row_iter(cursor &csr) : m_csr(&csr) {
+row_iter::row_iter(cursor &csr) noexcept
+    : m_csr(&csr) 
+{
     if(!m_csr->get())
         m_csr = nullptr;
     else
@@ -21,34 +27,40 @@ row_iter &row_iter::operator++() {
     return *this;
 }
 
-bool row_iter::operator == (row_iter const &i) const
+bool row_iter::operator == (row_iter const &i) const noexcept
 { return m_csr == i.m_csr; }
 
-bool row_iter::operator !=(row_iter const &i) const
+bool row_iter::operator !=(row_iter const &i) const noexcept
 { return !(*this == i); }
 
 /**
  * cursor impl
  */
-cursor::cursor(database const &db)
+cursor::cursor(database const &db) noexcept
 : m_db(db.get())
 {}
 
-void cursor::executescript(std::string const &sql)
+cursor &cursor::executescript(std::string const &sql)
 {
-    sqlite3_exec(m_db, sql.c_str(), 0, 0, 0);
+    int ec = 0;
+    if(0 != (ec = sqlite3_exec(m_db, sql.c_str(), 0, 0, 0)))
+       throw error(ec);
+    return *this;
 }
 
 void cursor::step() {
-    if (!m_stmt) throw std::runtime_error("null cursor");
-    switch(sqlite3_step(m_stmt.get())) {
+    assert(m_stmt && "null cursor");
+
+    int ec = sqlite3_step(m_stmt.get());
+
+    switch(ec) {
     case SQLITE_DONE:
         m_stmt.reset();
         break;
     case SQLITE_ROW:
         break;
     default:
-        throw std::runtime_error("advance cursor failure");
+        throw error(ec);
     }
 }
 
@@ -58,21 +70,22 @@ void cursor::step() {
 database::database(std::string const &urn)
 {
     sqlite3 *i = 0;
-    if(sqlite3_open(urn.c_str(), &i)) {
-        assert(i == 0);
-        throw std::runtime_error("open database failure");
-    }
+    int ec = 0;
+
+    if(0 != (ec = sqlite3_open(urn.c_str(), &i)))
+        throw error(ec);
+
     m_db.reset(i);
 }
 
-cursor database::make_cursor() const
+cursor database::make_cursor() const noexcept
 {
     return cursor(*this);
 }
 
 void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     auto *cb = (xfunc_t*)sqlite3_user_data(ctx);
-    (*cb)(ctx, argv);
+    (*cb)(ctx, argc, argv);
 }
 
 void database::dispose(void *user_data) {
@@ -82,7 +95,7 @@ void database::dispose(void *user_data) {
 
 void database::step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
-    wrapper->step(ctx, argv);
+    wrapper->step(ctx, argc, argv);
 }
 
 void database::final_ag(sqlite3_context *ctx) {

@@ -61,6 +61,7 @@ inline void get_col_val(sqlite3_stmt *stmt, int index, int& val)
 inline void get_col_val(sqlite3_stmt *stmt, int index, double& val)
 { val = sqlite3_column_double(stmt, index); }
 
+// TODO string_view is much more efficient
 inline void get_col_val(sqlite3_stmt *stmt, int index, std::string &val)
 { val = (char const *)sqlite3_column_text(stmt, index); }
 
@@ -94,8 +95,9 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 template <typename T, typename ... Args>
 void bind_to_stmt(sqlite3_stmt *stmt, int index, T val, Args&& ... args)
 {
-    if(bind_val(stmt, index, val))
-        throw std::runtime_error("bind error");
+    int ec = 0;
+    if(0 != (ec = bind_val(stmt, index, val)))
+        throw error(ec);
     bind_to_stmt(stmt, index+1, std::forward<Args>(args)...);
 }
 
@@ -130,22 +132,23 @@ inline void result(std::string const &val, sqlite3_context *ctx)
  * (registered via sqlite3_create_function).
  */
 template<typename R, typename ...Args, int ...Is>
-R invoke(std::function<R(Args...)> func, sqlite3_value **argv, indexes<Is...>) {
+R invoke(std::function<R(Args...)> func, int argc, sqlite3_value **argv, indexes<Is...>) {
+    // TODO Check argc
     // Expand argv per index
     return func( get(Type<Args>{}, argv, Is)... ); 
 }
 
 template<typename R, typename... Args>
-R invoke( std::function<R(Args...)> func, sqlite3_value **argv) {
-    return invoke(func, argv, make_indexes_t<sizeof...(Args)>{} );
+R invoke( std::function<R(Args...)> func, int argc, sqlite3_value **argv) {
+    return invoke(func, argc, argv, make_indexes_t<sizeof...(Args)>{} );
 }
 
 template<typename R, typename ... Args>
 database::xfunc_t
 make_invoker(std::function<R(Args...)>&& func)
 {
-    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
-        result(invoke(func, argv), ctx);
+    return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+        result(invoke(func, argc, argv), ctx);
     };
 }
 
@@ -153,8 +156,8 @@ template<typename ... Args>
 database::xfunc_t
 make_invoker(std::function<void(Args...)>&& func)
 {
-    return [func](sqlite3_context *ctx, sqlite3_value **argv) {
-        invoke(func, argv);
+    return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+        invoke(func, argc, argv);
     };
 }
 
@@ -206,7 +209,7 @@ namespace sqlite3cpp {
  * row impl
  */
 template<typename ... Cols>
-std::tuple<Cols...> row::get() const
+std::tuple<Cols...> row::to() const
 {
     std::tuple<Cols ...> result;
     detail::foreach_tuple_element(result, detail::set_col_val(m_stmt));
@@ -220,9 +223,11 @@ template<typename ... Args>
 cursor& cursor::execute(std::string const &sql, Args&& ... args)
 {
     sqlite3_stmt *stmt = 0;
-    if(sqlite3_prepare_v2(m_db, sql.c_str(), sql.size(), &stmt, 0)) {
-        throw std::runtime_error("execute statement failure");
-    }
+    int ec = 0;
+
+    if(0 != (ec = sqlite3_prepare_v2(m_db, sql.c_str(), sql.size(), &stmt, 0)))
+        throw error(ec);
+
     m_stmt.reset(stmt);
     detail::bind_to_stmt(m_stmt.get(), 1, std::forward<Args>(args)...);
     step();
@@ -241,18 +246,19 @@ void database::create_scalar(std::string const &name, FUNC&& func,
     auto *xfunc_ptr =
         new xfunc_t(detail::make_invoker(typename traits::f_type(func)));
 
-    if(sqlite3_create_function_v2(
-      m_db.get(),
-      name.c_str(),
-      (int)traits::arity,
-      flags,
-      (void*)xfunc_ptr,
-      &database::forward,
-      0, 0,
-      &dispose))
+    int ec = 0;
+    if(0 != (ec = sqlite3_create_function_v2(
+          m_db.get(),
+          name.c_str(),
+          (int)traits::arity,
+          flags,
+          (void*)xfunc_ptr,
+          &database::forward,
+          0, 0,
+          &dispose)))
     {
         delete xfunc_ptr;
-        throw std::runtime_error("create_function failure");
+        throw error(ec);
     }
 }
 
@@ -273,20 +279,21 @@ void database::create_aggregate(std::string const &name,
     wrapper->step = make_invoker(bind_this(&AG::step, inst));
     wrapper->fin = [inst](sqlite3_context* ctx) { result(inst->finalize(), ctx); };
 
-    if(sqlite3_create_function_v2(
-        m_db.get(),
-        name.c_str(),
-        (int)traits::arity,
-        flags,
-        (void*)wrapper,
-        0,
-        &step_ag,
-        &final_ag,
-        &dispose_ag))
+    int ec = 0;
+    if(0 != (ec = sqlite3_create_function_v2(
+          m_db.get(),
+          name.c_str(),
+          (int)traits::arity,
+          flags,
+          (void*)wrapper,
+          0,
+          &step_ag,
+          &final_ag,
+          &dispose_ag)))
     {
         delete inst;
         delete wrapper;
-        throw std::runtime_error("create_aggregate failure");
+        throw error(ec);
     }
 }
 

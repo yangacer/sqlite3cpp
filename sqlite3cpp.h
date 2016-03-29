@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include <exception>
 #include "sqlite3.h" 
 
 #ifndef SQLITE_DETERMINISTIC
@@ -19,6 +20,7 @@ namespace sqlite3cpp {
 /**
  * Forwarded decls
  */
+struct error;
 struct database;
 struct cursor;
 struct row_iter;
@@ -28,10 +30,17 @@ struct aggregate;
 C_STYLE_DELETER(sqlite3, sqlite3_close);
 C_STYLE_DELETER(sqlite3_stmt, sqlite3_finalize);
 
+struct error : std::exception {
+    error(int code) noexcept : code(code) {}
+    char const *what() const noexcept;
+    int code;
+};
+
 struct row
 {
     template<typename ... Cols>
-    std::tuple<Cols...> get() const;
+    std::tuple<Cols...> to() const;
+    sqlite3_stmt *get() const noexcept { return m_stmt; }
 private:
     friend struct row_iter;
     row() : m_stmt(nullptr) {}
@@ -41,14 +50,14 @@ private:
 struct row_iter
 {
     row_iter &operator++();
-    bool operator == (row_iter const &i) const;
-    bool operator != (row_iter const &i) const;
-    row const &operator*() const { return m_row; }
-    row const *operator->() const { return &m_row; }
+    bool operator == (row_iter const &i) const noexcept;
+    bool operator != (row_iter const &i) const noexcept;
+    row const &operator*() const noexcept { return m_row; }
+    row const *operator->() const noexcept { return &m_row; }
 private:
     friend struct cursor;
-    row_iter() : m_csr(nullptr) {}
-    row_iter(cursor &csr);
+    row_iter() noexcept : m_csr(nullptr) {}
+    row_iter(cursor &csr) noexcept;
     cursor *m_csr;
     row m_row;
 };
@@ -56,34 +65,34 @@ private:
 struct cursor
 {
     template<typename ... Args>
-    cursor& execute(std::string const &sql, Args&& ... args);
+    cursor &execute(std::string const &sql, Args&& ... args);
 
-    void executescript(std::string const &sql);
+    cursor &executescript(std::string const &sql);
 
-    row_iter begin() { return row_iter(*this); }
-    row_iter end()   { return row_iter(); }
+    row_iter begin() noexcept { return row_iter(*this); }
+    row_iter end() noexcept { return row_iter(); }
 
-    sqlite3_stmt *get() const { return m_stmt.get(); }
+    sqlite3_stmt *get() const noexcept { return m_stmt.get(); }
 
 private:
     void step();
     friend struct row_iter;
     friend struct database;
-    cursor(database const &db);
+    cursor(database const &db) noexcept;
     sqlite3 *m_db;
     std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
 };
 
 struct database
 {
-    using xfunc_t = std::function<void(sqlite3_context*, sqlite3_value **)>;
+    using xfunc_t = std::function<void(sqlite3_context*, int, sqlite3_value **)>;
     using xfinal_t = std::function<void(sqlite3_context*)>;
     using xreset_t = std::function<void()>;
 
     database(std::string const &urn);
 
-    cursor make_cursor() const;
-    sqlite3 *get() const { return m_db.get(); }
+    cursor make_cursor() const noexcept;
+    sqlite3 *get() const noexcept { return m_db.get(); }
 
     template<typename FUNC>
     void create_scalar(std::string const &name,
