@@ -14,6 +14,8 @@ https://github.com/yangacer/sqlite3cpp
 
 Require cmake at least version 3.0.
 
+
+### Install
 ```shell
 git clone https://github.com/yangacer/sqlite3cpp
 cd sqlite3cpp
@@ -22,6 +24,43 @@ cd build
 cmake .. # -DCMAKE_BUILD_TYPE=Release
 make
 sudo make install
+```
+
+### Hello, World!
+
+> Compile with: g++ -std=c++11 -o hello hello.cpp -lsqlite3cpp -lsqlite3
+
+```cpp
+#include <iostream>
+#include "sqlite3cpp.h"
+
+int main() {
+    using namespace sqlite3cpp;
+    using std::string;
+
+    database db(":memory:");
+
+    cursor c = db.make_cursor();
+
+    c.executescript(
+      "create table T (msg TEXT, num INTEGER);"
+      "insert into T values("Hello, World!", 1);"
+      "insert into T values("Hello, sqlite3cpp!", 2);"
+      );
+
+    char const *query = "select msg from T where msg like ? and num > ?";
+    string pattern = "%World%";
+    for(auto const &row : c.execute(query, pattern, 0) {
+        string msg;
+        int num;
+
+        std::tie(msg, num) = row.to<string, int>();
+        std::cout << "msg: " << msg << " num: " << num << std::endl;
+    }
+
+    // Output: msg: Hello, World! num: 1
+}
+
 ```
 
 ## Features

@@ -10,4 +10,4 @@ script:
     - cmake . -DCMAKE_BUILD_TYPE=Debug -DCOVERALLS=ON
     - make
     - make coveralls
-    - valgrind --leak-check=full ctest -V # Make sure tests are executed corretly and logged with "-V"
+    - valgrind --leak-check=full --trace-children=yes ctest -V # Make sure tests are executed corretly and logged with "-V"
