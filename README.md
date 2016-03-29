@@ -1,9 +1,6 @@
 # sqlite3cpp
 
-[![Build Status](https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master)](https://travis-ci.org/yangacer/sqlite3cpp)
-<!--
-[![Coverage Status](https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github)](https://coveralls.io/github/yangacer/sqlite3cpp?branch=master) 
--->
+[![Build Status](https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master)](https://travis-ci.org/yangacer/sqlite3cpp) [![Coverage Status](https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github)](https://coveralls.io/github/yangacer/sqlite3cpp?branch=master)
 
 ## Source
 
