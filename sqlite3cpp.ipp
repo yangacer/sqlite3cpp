@@ -118,6 +118,10 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
     return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
 }
 
+inline int bind_val(sqlite3_stmt *stmt, int index, char const *val) {
+    return sqlite3_bind_text(stmt, index, val, -1, SQLITE_STATIC);
+}
+
 inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
     return sqlite3_bind_null(stmt, index);
 }

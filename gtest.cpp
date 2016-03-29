@@ -107,7 +107,7 @@ TEST_F(DBTest, query) {
     std::string pattern = "test%";
 
     int idx = 0;
-    for(auto const &row : c.execute(query, 1, 3, pattern)) {
+    for(auto const &row : c.execute(query, 1, 3, "test%")) {
         int a; std::string b;
         std::tie(a, b) = row.to<int, std::string>();
 

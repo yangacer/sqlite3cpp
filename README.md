@@ -49,8 +49,7 @@ int main() {
       );
 
     char const *query = "select msg from T where msg like ? and num > ?";
-    string pattern = "%World%";
-    for(auto const &row : c.execute(query, pattern, 0) {
+    for(auto const &row : c.execute(query, "%World%", 0) {
         string msg;
         int num;
 
