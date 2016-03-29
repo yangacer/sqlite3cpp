@@ -27,3 +27,23 @@ install(TARGETS sqlite3cpp
     LIBRARY DESTINATION lib CONFIGURATIONS Release
     PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
 
+#
+# Coversall configuration
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/coversall/cmake)
+
+option(COVERALLS "Generate coveralls data" OFF)
+
+if (COVERALLS)
+    include(Coveralls)
+    coveralls_turn_on_coverage()
+    set(COVERAGE_SRCS sqlite3cpp.cpp sqlite3cpp.ipp)
+    coveralls_setup(
+        "${COVERAGE_SRCS}" # The source files.
+        ON                 # If we should upload.
+        "${PROJECT_SOURCE_DIR}/cmake/coversall/cmake"
+        )
+endif()
+
+enable_testing()
+add_test(unittest ./gtest --gtest_shuffle --gtest_repeat=2)
