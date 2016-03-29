@@ -223,5 +223,25 @@ TEST_F(DBTest, error_handle) {
     } catch(...) {
         FAIL() << "sqlite3cpp::error should be caught";
     }
+
+    try {
+        c.executescript("invalid sql");
+        FAIL() << "Expect throw";
+    } catch(error const &e) {
+        EXPECT_EQ(SQLITE_ERROR, e.code);
+        EXPECT_STREQ("SQL logic error or missing database", e.what());
+    } catch(...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
+    try {
+        c.execute("select * from T", 123); // invalid bind
+    } catch(error const &e) {
+        EXPECT_EQ(SQLITE_RANGE, e.code);
+        EXPECT_STREQ("bind or column index out of range", e.what());
+    } catch(...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
 }
 

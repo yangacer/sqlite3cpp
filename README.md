@@ -2,6 +2,10 @@
 
 [![Build Status](https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master)](https://travis-ci.org/yangacer/sqlite3cpp) [![Coverage Status](https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github)](https://coveralls.io/github/yangacer/sqlite3cpp?branch=master)
 
+A C++ wrapper library for the awsome sqlite3.
+
+> **Disclaimer**: It doesn't and won't provide any kind of ORM.
+
 ## Source
 
 https://github.com/yangacer/sqlite3cpp
@@ -105,3 +109,45 @@ for(auto const &row : csr.execute(query)) {
     // EXPECT_DOUBLE_EQ(0.81649658092772603, a);
 }
 ```
+
+## Usage Mapping
+
+
+| sqlite3         | sqlite3cpp
+| ---             | ---
+| sqlite3 *       | database
+| sqlite3_stmt *  | cursor, row
+
+
+For mapped classes of sqlite3cpp, you can obtain underlying sqlite3 struct for
+inoking sqlite3 native functions.
+e.g.
+
+```cpp
+database db(":memory:");
+
+sqlite3 *db_impl = db.get();
+
+// take the native `sqlite3_changes` for example
+printf("Modified rows: %d", sqlite3_changes(db_impl, ...));
+
+cursor c = db.make_cursor();
+
+c.execute("select * from T");
+
+sqlite3_stmt *stmt = c.get();
+
+// Print column names
+for(int i = 0; i < sqlite3_column_count(stmt); ++i) {
+    printf("%s\t", sqlite3_column_name(stmt, i));
+}
+printf("\n");
+
+for(auto const &row : c) {
+    printf("%d\t", sqlite3_column_bytes(row.get()));
+    // Note: row.get() also returns `sqlite3_stmt *`
+
+}
+
+```
+
