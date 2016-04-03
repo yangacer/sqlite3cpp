@@ -117,27 +117,57 @@ cursor database::make_cursor() const noexcept
 
 void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     auto *cb = (xfunc_t*)sqlite3_user_data(ctx);
-    (*cb)(ctx, argc, argv);
+    assert(cb != 0);
+
+    try {
+        (*cb)(ctx, argc, argv);
+    } catch (std::bad_alloc const &_) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (...) {
+        sqlite3_result_error_code(ctx, SQLITE_ABORT);
+    }
 }
 
 void database::dispose(void *user_data) {
     auto *cb = (xfunc_t*)user_data;
+    assert(cb != 0);
+
     delete cb;
 }
 
 void database::step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
-    wrapper->step(ctx, argc, argv);
+    assert(wrapper != 0);
+
+    try {
+        wrapper->step(ctx, argc, argv);
+    } catch (std::bad_alloc const &_) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (...) {
+        sqlite3_result_error_code(ctx, SQLITE_ABORT);
+    }
+
 }
 
 void database::final_ag(sqlite3_context *ctx) {
     auto *wrapper = (aggregate_wrapper_t*)sqlite3_user_data(ctx);
-    wrapper->fin(ctx);
-    wrapper->reset();
+    assert(wrapper != 0);
+
+    try {
+        wrapper->fin(ctx);
+        wrapper->reset();
+    } catch (std::bad_alloc const &_) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (...) {
+        sqlite3_result_error_code(ctx, SQLITE_ABORT);
+    }
+
 }
 
 void database::dispose_ag(void *user_data) {
     auto *wrapper = (aggregate_wrapper_t*)user_data;
+    assert(wrapper != 0);
+
     wrapper->release();
     delete wrapper;
 }

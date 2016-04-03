@@ -88,6 +88,9 @@ void foreach_tuple_element(tuple_type & t, F f)
 inline void get_col_val(sqlite3_stmt *stmt, int index, int& val)
 { val = sqlite3_column_int(stmt, index); }
 
+inline void get_col_val(sqlite3_stmt *stmt, int index, int64_t& val)
+{ val = sqlite3_column_int64(stmt, index); }
+
 inline void get_col_val(sqlite3_stmt *stmt, int index, double& val)
 { val = sqlite3_column_double(stmt, index); }
 
@@ -146,6 +149,7 @@ inline int get(Type<int>, sqlite3_value** v, int const index)
 inline double get(Type<double>, sqlite3_value** v, int const index)
 { return sqlite3_value_double(v[index]); }
 
+// XXX string_view ... we need you
 inline std::string get(Type<std::string>, sqlite3_value **v, int const index)
 { return std::string((char const *)sqlite3_value_text(v[index]), (size_t)sqlite3_value_bytes(v[index])); }
 
@@ -154,6 +158,9 @@ inline std::string get(Type<std::string>, sqlite3_value **v, int const index)
  */
 inline void result(int val, sqlite3_context *ctx)
 { sqlite3_result_int(ctx, val); }
+
+inline void result(int64_t val, sqlite3_context *ctx)
+{ sqlite3_result_int64(ctx, val); }
 
 inline void result(double val, sqlite3_context *ctx)
 { sqlite3_result_double(ctx, val); }

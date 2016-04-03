@@ -31,6 +31,7 @@
 #include "gtest/gtest.h"
 #include "sqlite3cpp.h"
 #include <iostream>
+#include <limits>
 
 struct DBTest : ::testing::Test {
     DBTest()
@@ -44,7 +45,7 @@ struct DBTest : ::testing::Test {
         auto c = basic_dataset().make_cursor();
         c.executescript(
           "begin;"
-          "create table T (a INT, b TEXT);"
+          "create table T (a INTEGER, b TEXT);"
           "insert into T values(1, 'test1');"
           "insert into T values(2, 'test2');"
           "insert into T values(2, 'abc');"
@@ -158,22 +159,46 @@ TEST_F(DBTest, create_scalar) {
         return x * y;
     });
 
-    char const *query = "select plus123(a), mutiply(a,a), minus123(a) from T;";
+    basic_dataset().create_scalar("strcat123", [](std::string val) {
+        return val + "_123";
+    });
+
+    char const *query = "select plus123(a), mutiply(a,a), minus123(a), strcat123(a) from T;";
 
     int idx = 0;
-    int expected[4][3] = {
-        {123+1, 1*1, 1 - 123},
-        {123+2, 2*2, 2 - 123},
-        {123+2, 2*2, 2 - 123},
-        {123+3, 3*3, 3 - 123}
+    struct {
+        int plus, mul, min;
+        char const *cat;
+    } expected[4] = {
+        { 123+1, 1*1, 1 - 123, "1_123" },
+        { 123+2, 2*2, 2 - 123, "2_123" },
+        { 123+2, 2*2, 2 - 123, "2_123" },
+        { 123+3, 3*3, 3 - 123, "3_123" }
     };
+
     for(auto const &row : c.execute(query)) {
         int a, b, c;
-        std::tie(a, b, c) = row.to<int, int, int>();
-        EXPECT_EQ(expected[idx][0], a);
-        EXPECT_EQ(expected[idx][1], b);
-        EXPECT_EQ(expected[idx][2], c);
+        std::string d;
+
+        std::tie(a, b, c, d) = row.to<int, int, int, std::string>();
+        EXPECT_EQ(expected[idx].plus, a);
+        EXPECT_EQ(expected[idx].mul, b);
+        EXPECT_EQ(expected[idx].min, c);
+        EXPECT_EQ(expected[idx].cat, d);
         idx++;
+    }
+}
+
+TEST_F(DBTest, max_int64) {
+    auto c = basic_dataset().make_cursor();
+
+    basic_dataset().create_scalar("maxint64", [](){
+        return std::numeric_limits<int64_t>::max();
+    });
+
+    for(auto const &row : c.execute("select maxint64()")) {
+        EXPECT_EQ(std::numeric_limits<int64_t>::max(),
+                  std::get<0>(row.to<int64_t>()));
     }
 }
 
@@ -182,7 +207,6 @@ TEST_F(DBTest, create_aggregate) {
     using namespace sqlite3cpp;
 
     struct stdev {
-        stdev() : m_cnt(0), m_sum(0), m_sq_sum(0) {}
         void step(int val) {
             m_cnt ++;
             m_sum += val;
@@ -193,8 +217,9 @@ TEST_F(DBTest, create_aggregate) {
             auto avg = (double)m_sum / m_cnt;
             return std::sqrt((double)(m_sq_sum - avg * avg * m_cnt) / (m_cnt -1));
         }
-        size_t m_cnt;
-        int m_sum, m_sq_sum;
+        size_t m_cnt = 0;
+        int m_sum = 0,
+            m_sq_sum = 0;
     };
 
     basic_dataset().create_aggregate<stdev>("stdev");
@@ -240,6 +265,63 @@ TEST_F(DBTest, error_handle) {
         EXPECT_EQ(SQLITE_RANGE, e.code);
         EXPECT_STREQ("bind or column index out of range", e.what());
     } catch(...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+}
+
+TEST_F(DBTest, throw_in_custom_function) {
+
+    auto c = basic_dataset().make_cursor();
+
+    basic_dataset().create_scalar("bad_alloc", [](){
+        throw std::bad_alloc();
+    });
+
+    try {
+        c.execute("select bad_alloc();");
+    } catch(sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_NOMEM, e.code);
+        EXPECT_STREQ("out of memory", e.what());
+    }  catch (...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
+    struct throw_in_step {
+        void step(int) {
+            throw std::out_of_range("oops");
+        }
+        int finalize() {
+            return 0;
+        }
+    };
+
+    basic_dataset().create_aggregate<throw_in_step>("throw_in_step");
+
+    try {
+        c.execute("select throw_in_step(a) from T");
+    } catch (sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_ABORT, e.code);
+        EXPECT_STREQ("callback requested query abort", e.what());
+    } catch (...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
+    struct throw_in_final {
+        void step(int){}
+        int finalize() {
+            throw std::out_of_range("oops");
+            return 0;
+        }
+    };
+
+    basic_dataset().create_aggregate<throw_in_final>("throw_in_final");
+
+    try {
+        c.execute("select throw_in_final(a) from T");
+    } catch (sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_ABORT, e.code);
+        EXPECT_STREQ("callback requested query abort", e.what());
+    } catch (...) {
         FAIL() << "sqlite3cpp::error should be caught";
     }
 
