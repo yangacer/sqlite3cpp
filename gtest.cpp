@@ -286,8 +286,27 @@ TEST_F(DBTest, throw_in_custom_function) {
         FAIL() << "sqlite3cpp::error should be caught";
     }
 
+    basic_dataset().create_scalar("length_error", [](){
+        throw std::length_error("len err");
+    });
+
+    try {
+        c.execute("select length_error();");
+    } catch(sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_ABORT, e.code);
+        EXPECT_STREQ("callback requested query abort", e.what());
+    } catch (...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
+}
+
+TEST_F(DBTest, logic_error_in_aggregate) {
+
+    auto c = basic_dataset().make_cursor();
+
     struct throw_in_step {
-        void step(int) {
+        void step(int a) {
             throw std::out_of_range("oops");
         }
         int finalize() {
@@ -307,7 +326,7 @@ TEST_F(DBTest, throw_in_custom_function) {
     }
 
     struct throw_in_final {
-        void step(int){}
+        void step(int a){}
         int finalize() {
             throw std::out_of_range("oops");
             return 0;
@@ -324,6 +343,49 @@ TEST_F(DBTest, throw_in_custom_function) {
     } catch (...) {
         FAIL() << "sqlite3cpp::error should be caught";
     }
+}
 
+TEST_F(DBTest, bad_alloc_in_aggregate) {
+
+    auto c = basic_dataset().make_cursor();
+
+    struct throw_in_step {
+        void step(int a) {
+            throw std::bad_alloc();
+        }
+        int finalize() {
+            return 0;
+        }
+    };
+
+    basic_dataset().create_aggregate<throw_in_step>("throw_in_step");
+
+    try {
+        c.execute("select throw_in_step(a) from T");
+    } catch (sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_NOMEM, e.code);
+        EXPECT_STREQ("out of memory", e.what());
+    } catch (...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
+
+    struct throw_in_final {
+        void step(int a){}
+        int finalize() {
+            throw std::bad_alloc();
+            return 0;
+        }
+    };
+
+    basic_dataset().create_aggregate<throw_in_final>("throw_in_final");
+
+    try {
+        c.execute("select throw_in_final(a) from T");
+    } catch (sqlite3cpp::error const &e) {
+        EXPECT_EQ(SQLITE_NOMEM, e.code);
+        EXPECT_STREQ("out of memory", e.what());
+    } catch (...) {
+        FAIL() << "sqlite3cpp::error should be caught";
+    }
 }
 
