@@ -44,8 +44,8 @@ int main() {
 
     c.executescript(
       "create table T (msg TEXT, num INTEGER);"
-      "insert into T values("Hello, World!", 1);"
-      "insert into T values("Hello, sqlite3cpp!", 2);"
+      "insert into T values('Hello, World!', 1);"
+      "insert into T values('Hello, sqlite3cpp!', 2);"
       );
 
     char const *query = "select msg from T where msg like ? and num > ?";
