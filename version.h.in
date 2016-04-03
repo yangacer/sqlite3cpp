@@ -1,0 +1,3 @@
+#pragma once
+
+#define SQLITE3CPP_VERSION_STRING "@PROJECT_VERSION@"

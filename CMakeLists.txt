@@ -21,12 +21,17 @@ set_target_properties(sqlite3cpp PROPERTIES
     PUBLIC_HEADER "sqlite3cpp.h;sqlite3cpp.ipp")
 
 add_executable(gtest gtest.cpp)
-set_property(TARGET gtest PROPERTY CXX_STANDARD 14)
+set_target_properties(gtest
+    PROPERTIES CXX_STANDARD 14)
 target_link_libraries(gtest PUBLIC GTest::main sqlite3cpp )
 
 install(TARGETS sqlite3cpp
     LIBRARY DESTINATION lib CONFIGURATIONS Release
     PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
+
+add_executable(bench bench.cpp)
+set_target_properties(bench PROPERTIES CXX_STANDARD 14)
+target_link_libraries(bench sqlite3cpp)
 
 #
 # Coversall configuration
