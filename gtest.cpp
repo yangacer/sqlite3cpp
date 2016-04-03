@@ -389,3 +389,9 @@ TEST_F(DBTest, bad_alloc_in_aggregate) {
     }
 }
 
+# include "version.h"
+
+TEST_F(DBTest, version) {
+
+    EXPECT_STREQ(SQLITE3CPP_VERSION_STRING, basic_dataset().version().c_str());
+}

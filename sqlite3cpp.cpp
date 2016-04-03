@@ -31,6 +31,7 @@
  *
  ******************************************************************************/
 #include "sqlite3cpp.h"
+#include "version.h"
 #include <cassert>
 #include <stdexcept>
 
@@ -113,6 +114,11 @@ database::database(std::string const &urn)
 cursor database::make_cursor() const noexcept
 {
     return cursor(*this);
+}
+
+std::string database::version() const
+{
+    return SQLITE3CPP_VERSION_STRING;
 }
 
 void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {

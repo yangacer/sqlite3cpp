@@ -135,6 +135,7 @@ struct database
     void create_aggregate(std::string const &name,
                           int flags=SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
+    std::string version() const;
 private:
 
     struct aggregate_wrapper_t {
