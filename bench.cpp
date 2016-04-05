@@ -19,20 +19,65 @@ std::function<void()> gen_test_data(int index, int argc, char **argv)
         c.executescript(
           "pragma journal_mode=wal;"
           "drop table if exists T;"
-          "create table T (msg TEXT);"
+          "create table T (msg TEXT, rand INTEGER);"
           );
 
         auto cnt = data_size >> 4;
         for(size_t i = 0; i < cnt; ++i) {
-            c.executescript("insert into T values(strftime('%Y-%m-%d %H:%M:%f', 'now'))");
+            c.executescript("insert into T values(strftime('%Y-%m-%d %H:%M:%f', 'now'), random())");
         }
     };
 }
 
-std::function<void()> seq_scan(int index, int argc, char **argv)
-{
 
-}
+struct scan {
+
+    static void sequential() {
+        sqlite3cpp::database db("testdata.db");
+
+        auto c = db.make_cursor();
+        size_t cnt = 0;
+        std::string ts;
+
+        for (auto const & row : c.execute("select msg from T")) {
+            std::tie(ts) = row.to<std::string>();
+            cnt += 1;
+        }
+
+        std::cout << "scan " << cnt << " rows" << std::endl;
+    }
+
+    static void random() {
+        sqlite3cpp::database db("testdata.db");
+
+        auto c = db.make_cursor();
+        size_t cnt = 0;
+        std::string ts;
+
+        for (auto const & row : c.execute("select msg from T order by rand")) {
+            std::tie(ts) = row.to<std::string>();
+            cnt += 1;
+        }
+
+        std::cout << "scan " << cnt << " rows" << std::endl;
+    }
+
+    std::function<void()> operator()(int index, int argc, char **argv) const
+    {
+        if (index + 1 >= argc)
+            throw std::invalid_argument("missing scan pattern (seq|rand)");
+
+        char const *pattern = argv[index + 1];
+
+        if (!strcmp("seq", pattern)) {
+            return scan::sequential;
+        } else if(!strcmp("rand", pattern)) {
+            return scan::random;
+        } else {
+            throw std::invalid_argument("invalid scan pattern");
+        }
+    }
+};
 
 int main(int argc, char **argv) {
 
@@ -50,8 +95,8 @@ int main(int argc, char **argv) {
             gen_test_data
         }, {
             "-r",
-            "-r <pattern>\tScan testdata with specified pattern (seq|rand).",
-            seq_scan
+            "-r <seq|rand>\tScan testdata with specified pattern (sequential or random).",
+            scan()
         }, {
             "-h",
             "-h\tPrint usage.",
