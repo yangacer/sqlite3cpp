@@ -117,6 +117,22 @@ TEST_F(DBTest, query) {
     }
 }
 
+TEST_F(DBTest, query_with_string_ref) {
+    using namespace sqlite3cpp;
+
+    auto c = basic_dataset().make_cursor();
+    char const *query = "select * from T where a > ? and a < ? and b like ?";
+    std::string pattern = "test%";
+
+    int idx = 0;
+    for(auto const &row : c.execute(query, 1, 3, "test%")) {
+        int a; string_ref b;
+        std::tie(a, b) = row.to<int, string_ref>();
+
+        EXPECT_EQ(2, a);
+        EXPECT_STREQ("test2", b.data());
+    }
+}
 
 TEST(basic, wrap_function) {
     using namespace sqlite3cpp;
