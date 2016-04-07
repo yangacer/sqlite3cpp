@@ -30,6 +30,7 @@ std::function<void()> gen_test_data(int index, int argc, char **argv)
 }
 
 
+template<typename T>
 struct scan {
 
     static void sequential() {
@@ -37,10 +38,10 @@ struct scan {
 
         auto c = db.make_cursor();
         size_t cnt = 0;
-        std::string ts;
+        T ts;
 
         for (auto const & row : c.execute("select msg from T")) {
-            std::tie(ts) = row.to<std::string>();
+            std::tie(ts) = row.to<T>();
             cnt += 1;
         }
 
@@ -52,10 +53,10 @@ struct scan {
 
         auto c = db.make_cursor();
         size_t cnt = 0;
-        std::string ts;
+        T ts;
 
         for (auto const & row : c.execute("select msg from T order by rand")) {
-            std::tie(ts) = row.to<std::string>();
+            std::tie(ts) = row.to<T>();
             cnt += 1;
         }
 
@@ -94,9 +95,13 @@ int main(int argc, char **argv) {
             "-g <mb>\tGenerate testdata.db of specified size.",
             gen_test_data
         }, {
-            "-r",
-            "-r <seq|rand>\tScan testdata with specified pattern (sequential or random).",
-            scan()
+            "-rc",
+            "-rc <seq|rand>\tScan testdata with specified pattern (sequential or random) in copy semantic.",
+            scan<std::string>()
+        },{
+            "-rr",
+            "-rr <seq|rand>\tScan testdata with specified pattern (sequential or random) in ref semantic.",
+            scan<sqlite3cpp::string_ref>()
         }, {
             "-h",
             "-h\tPrint usage.",
@@ -115,7 +120,7 @@ int main(int argc, char **argv) {
         };
     };
 
-    options[2].act = help;
+    options[3].act = help;
 
     for(int i=1; i < argc; ++i) {
         for(int j=0; j < sizeof(options)/sizeof(opt); ++j) {

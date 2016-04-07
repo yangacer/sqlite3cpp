@@ -85,25 +85,32 @@ void foreach_tuple_element(tuple_type & t, F f)
 /**
  * Helpers for retrieve column values.
  */
-inline void get_col_val(sqlite3_stmt *stmt, int index, int& val)
+inline void get_col_val_aux(sqlite3_stmt *stmt, int index, int& val)
 { val = sqlite3_column_int(stmt, index); }
 
-inline void get_col_val(sqlite3_stmt *stmt, int index, int64_t& val)
+inline void get_col_val_aux(sqlite3_stmt *stmt, int index, int64_t& val)
 { val = sqlite3_column_int64(stmt, index); }
 
-inline void get_col_val(sqlite3_stmt *stmt, int index, double& val)
+inline void get_col_val_aux(sqlite3_stmt *stmt, int index, double& val)
 { val = sqlite3_column_double(stmt, index); }
 
 // TODO string_view is much more efficient
-inline void get_col_val(sqlite3_stmt *stmt, int index, std::string &val)
-{ val = (char const *)sqlite3_column_text(stmt, index); }
+inline void get_col_val_aux(sqlite3_stmt *stmt, int index, std::string &val) {
+    val.assign((char const *)sqlite3_column_text(stmt, index),
+               sqlite3_column_bytes(stmt, index)); 
+}
 
-struct set_col_val {
-    set_col_val(sqlite3_stmt *stmt) : m_stmt(stmt) {}
+inline void get_col_val_aux(sqlite3_stmt *stmt, int index, string_ref &val) {
+    val.set((char const *)sqlite3_column_text(stmt, index),
+            sqlite3_column_bytes(stmt, index)); 
+}
+
+struct get_col_val {
+    get_col_val(sqlite3_stmt *stmt) : m_stmt(stmt) {}
 
     template<typename T>
     void operator()(T &out, int index) const
-    { get_col_val(m_stmt, index, out); }
+    { get_col_val_aux(m_stmt, index, out); }
 private:
     sqlite3_stmt *m_stmt;
 };
@@ -253,7 +260,7 @@ template<typename ... Cols>
 std::tuple<Cols...> row::to() const
 {
     std::tuple<Cols ...> result;
-    detail::foreach_tuple_element(result, detail::set_col_val(m_stmt));
+    detail::foreach_tuple_element(result, detail::get_col_val(m_stmt));
     return result;
 }
 

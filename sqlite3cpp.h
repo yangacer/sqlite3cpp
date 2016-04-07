@@ -36,7 +36,8 @@
 #include <string>
 #include <cstdint>
 #include <exception>
-#include "sqlite3.h" 
+#include "sqlite3.h"
+#include "stringpiece.h"
 
 #ifndef SQLITE_DETERMINISTIC
 #define SQLITE_DETERMINISTIC 0
@@ -48,6 +49,8 @@
     }
 
 namespace sqlite3cpp {
+
+using string_ref = re2::StringPiece;
 
 /**
  * Forwarded decls

@@ -14,7 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 
 configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
 
-add_library(sqlite3cpp SHARED sqlite3cpp.cpp)
+add_library(sqlite3cpp SHARED sqlite3cpp.cpp stringpiece.cc)
 target_link_libraries(sqlite3cpp PUBLIC sqlite3)
 set_target_properties(sqlite3cpp PROPERTIES
     CXX_STANDARD 14
