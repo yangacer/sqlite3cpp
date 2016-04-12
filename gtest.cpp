@@ -51,6 +51,7 @@ struct DBTest : ::testing::Test {
           "insert into T values(2, 'abc');"
           "insert into T values(3, 'test3');"
           "create table AllTypes (i INTEGER, r REAL, t TEXT);"
+          "create table InsTest (a INTEGER, b TEXT);"
           "commit;"
           );
 
@@ -71,6 +72,35 @@ private:
 TEST(basic, construct) {
     using namespace sqlite3cpp;
     database d(":memory:");
+}
+
+TEST_F(DBTest, insert_many) {
+
+    struct record {
+        int i;
+        std::string s;
+    };
+
+    std::vector<record> records = {
+        {9, "test"},
+        {9, "test"},
+        {9, "test"},
+        {9, "test"},
+    };
+
+    auto c = basic_dataset().make_cursor();
+
+    for (auto const &r : records) {
+        c.execute("insert into InsTest values(?,?)", r.i, r.s);
+    }
+
+    for (auto const &row : c.execute("select * from InsTest")) {
+        record rec;
+
+        std::tie(rec.i, rec.s) = row.to<int, std::string>();
+        EXPECT_EQ(9, rec.i);
+        EXPECT_EQ("test", rec.s);
+    }
 }
 
 TEST_F(DBTest, supported_types) {
@@ -222,28 +252,36 @@ TEST_F(DBTest, create_scalar) {
         return val + "_123";
     });
 
-    char const *query = "select plus123(a), mutiply(a,a), minus123(a), strcat123(a) from T;";
+    basic_dataset().create_scalar("divide", [](int x, double y) {
+        return (x+9) / y;
+    });
+
+
+    char const *query = "select plus123(a), mutiply(a,a), minus123(a), strcat123(a), divide(a, a) from T;";
 
     int idx = 0;
     struct {
         int plus, mul, min;
         char const *cat;
+        double div;
     } expected[4] = {
-        { 123+1, 1*1, 1 - 123, "1_123" },
-        { 123+2, 2*2, 2 - 123, "2_123" },
-        { 123+2, 2*2, 2 - 123, "2_123" },
-        { 123+3, 3*3, 3 - 123, "3_123" }
+        { 123+1, 1*1, 1 - 123, "1_123", (1+9)/1.0 },
+        { 123+2, 2*2, 2 - 123, "2_123", (2+9)/2.0 },
+        { 123+2, 2*2, 2 - 123, "2_123", (2+9)/2.0 },
+        { 123+3, 3*3, 3 - 123, "3_123", (3+9)/3.0 }
     };
 
     for(auto const &row : c.execute(query)) {
         int a, b, c;
         std::string d;
+        double e;
 
-        std::tie(a, b, c, d) = row.to<int, int, int, std::string>();
+        std::tie(a, b, c, d, e) = row.to<int, int, int, std::string, double>();
         EXPECT_EQ(expected[idx].plus, a);
         EXPECT_EQ(expected[idx].mul, b);
         EXPECT_EQ(expected[idx].min, c);
         EXPECT_EQ(expected[idx].cat, d);
+        EXPECT_EQ(expected[idx].div, e);
         idx++;
     }
 }
