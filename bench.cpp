@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
         };
     };
 
-    options[3].act = help;
+    options[sizeof(options)/sizeof(opt)].act = help;
 
     for(int i=1; i < argc; ++i) {
         for(int j=0; j < sizeof(options)/sizeof(opt); ++j) {

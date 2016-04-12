@@ -94,15 +94,14 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, int index, int64_t& val)
 inline void get_col_val_aux(sqlite3_stmt *stmt, int index, double& val)
 { val = sqlite3_column_double(stmt, index); }
 
-// TODO string_view is much more efficient
 inline void get_col_val_aux(sqlite3_stmt *stmt, int index, std::string &val) {
     val.assign((char const *)sqlite3_column_text(stmt, index),
-               sqlite3_column_bytes(stmt, index)); 
+               sqlite3_column_bytes(stmt, index));
 }
 
 inline void get_col_val_aux(sqlite3_stmt *stmt, int index, string_ref &val) {
     val.set((char const *)sqlite3_column_text(stmt, index),
-            sqlite3_column_bytes(stmt, index)); 
+            sqlite3_column_bytes(stmt, index));
 }
 
 struct get_col_val {
@@ -124,8 +123,16 @@ inline int bind_val(sqlite3_stmt *stmt, int index, int val) {
     return sqlite3_bind_int(stmt, index, val);
 }
 
+inline int bind_val(sqlite3_stmt *stmt, int index, double val) {
+    return sqlite3_bind_double(stmt, index, val);
+}
+
 inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
     return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
+}
+
+inline int bind_val(sqlite3_stmt *stmt, int index, string_ref const &val) {
+    return sqlite3_bind_text(stmt, index, val.data(), val.size(), SQLITE_STATIC);
 }
 
 inline int bind_val(sqlite3_stmt *stmt, int index, char const *val) {
@@ -259,6 +266,7 @@ namespace sqlite3cpp {
 template<typename ... Cols>
 std::tuple<Cols...> row::to() const
 {
+    // TODO Need optional<int> for NULL or int usage
     std::tuple<Cols ...> result;
     detail::foreach_tuple_element(result, detail::get_col_val(m_stmt));
     return result;

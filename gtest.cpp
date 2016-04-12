@@ -50,8 +50,10 @@ struct DBTest : ::testing::Test {
           "insert into T values(2, 'test2');"
           "insert into T values(2, 'abc');"
           "insert into T values(3, 'test3');"
+          "create table AllTypes (i INTEGER, r REAL, t TEXT);"
           "commit;"
           );
+
     }
 
     virtual void TearDown() {
@@ -69,6 +71,47 @@ private:
 TEST(basic, construct) {
     using namespace sqlite3cpp;
     database d(":memory:");
+}
+
+TEST_F(DBTest, supported_types) {
+    using namespace sqlite3cpp;
+
+    auto c = basic_dataset().make_cursor();
+
+    char const *c_str = "c string";
+    std::string cpp_str = "cpp string";
+
+    char const *str = "cpp ref string";
+    string_ref cpp_ref_str = str;
+
+    c.execute("insert into AllTypes values(?,?,?)",
+              123, 123.123, c_str);
+
+    c.execute("insert into AllTypes values(?,?,?)",
+              nullptr, 123.123, cpp_str);
+
+    c.execute("insert into AllTypes values(?,?,?)",
+              123, nullptr, cpp_ref_str);
+
+    auto iter = c.execute("select * from AllTypes").begin();
+
+    int i = 0;
+    double d = 0;
+    string_ref s;
+
+    std::tie(i, d, s) = iter->to<int, double, string_ref>();
+    EXPECT_EQ(123, i);
+    EXPECT_EQ(123.123, d);
+    EXPECT_STREQ(c_str, s.data());
+    ++iter;
+
+    std::tie(i, d, s) = iter->to<int, double, string_ref>();
+    EXPECT_STREQ(cpp_str.c_str(), s.data());
+    ++iter;
+
+    std::tie(i, d, s) = iter->to<int, double, string_ref>();
+    EXPECT_STREQ(cpp_ref_str.data(), s.data());
+
 }
 
 TEST_F(DBTest, row_iter) {
