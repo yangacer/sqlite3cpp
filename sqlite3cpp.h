@@ -131,7 +131,7 @@ struct database
 
     template<typename FUNC>
     void create_scalar(std::string const &name,
-                       FUNC &&func,
+                       FUNC func,
                        int flags=SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
     template<typename AG>

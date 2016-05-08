@@ -6,7 +6,7 @@ HunterGate(
     SHA1 "3f7dd82d1eb47633ea01a9f7bbcc51b0e8ada1d9"
     )
 
-project(sqlite3cpp VERSION 0.1.0)
+project(sqlite3cpp VERSION 0.1.1)
 
 hunter_add_package(GTest)
 
@@ -18,7 +18,7 @@ add_library(sqlite3cpp SHARED sqlite3cpp.cpp stringpiece.cc)
 target_link_libraries(sqlite3cpp PUBLIC sqlite3)
 set_target_properties(sqlite3cpp PROPERTIES
     CXX_STANDARD 14
-    PUBLIC_HEADER "sqlite3cpp.h;sqlite3cpp.ipp")
+    PUBLIC_HEADER "sqlite3cpp.h;sqlite3cpp.ipp;stringpiece.h")
 
 add_executable(gtest gtest.cpp)
 set_target_properties(gtest

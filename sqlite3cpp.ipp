@@ -220,6 +220,7 @@ make_invoker(std::function<void(Args...)>&& func)
 /**
  * Function traits for supporting lambda.
  */
+
 // For generic types that are functors, delegate to its 'operator()'
 template <typename T>
 struct function_traits
@@ -239,6 +240,15 @@ struct function_traits<R(C::*)(Args...) const> {
     typedef std::function<R (Args...)> f_type;
     static const size_t arity = sizeof...(Args);
 };
+
+// for function pointers
+template <typename R, typename... Args>
+struct function_traits<R(*)(Args...) > {
+    typedef std::function<R(Args...)> f_type;
+    static const size_t arity = sizeof...(Args);
+};
+
+
 
 /**
  * Member function binder helpers (auto expand by passed function prototype)
@@ -294,7 +304,7 @@ cursor& cursor::execute(std::string const &sql, Args&& ... args)
  * database impl
  */
 template<typename FUNC>
-void database::create_scalar(std::string const &name, FUNC&& func,
+void database::create_scalar(std::string const &name, FUNC func,
                              int flags)
 {
     using traits = detail::function_traits<FUNC>;
