@@ -28,12 +28,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
+#ifdef _WIN32
+#pragma warning (disable: 4819)
+#endif
 #include "gtest/gtest.h"
 #include "sqlite3cpp.h"
 #include <iostream>
 #include <limits>
 #include <cstdio>
-
 static void trace_print(void *ctx, char const *stmt) {
   printf("%s\n", stmt);
 }
