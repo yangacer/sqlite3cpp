@@ -122,7 +122,7 @@ void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
 
     try {
         (*cb)(ctx, argc, argv);
-    } catch (std::bad_alloc const &_) {
+    } catch (std::bad_alloc const &) {
         sqlite3_result_error_nomem(ctx);
     } catch (...) {
         sqlite3_result_error_code(ctx, SQLITE_ABORT);
@@ -142,7 +142,7 @@ void database::step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
 
     try {
         wrapper->step(ctx, argc, argv);
-    } catch (std::bad_alloc const &_) {
+    } catch (std::bad_alloc const &) {
         sqlite3_result_error_nomem(ctx);
     } catch (...) {
         sqlite3_result_error_code(ctx, SQLITE_ABORT);
@@ -157,7 +157,7 @@ void database::final_ag(sqlite3_context *ctx) {
     try {
         wrapper->fin(ctx);
         wrapper->reset();
-    } catch (std::bad_alloc const &_) {
+    } catch (std::bad_alloc const &) {
         sqlite3_result_error_nomem(ctx);
     } catch (...) {
         sqlite3_result_error_code(ctx, SQLITE_ABORT);
