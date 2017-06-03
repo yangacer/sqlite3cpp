@@ -40,6 +40,8 @@
 #include "stringpiece.h"
 #ifdef _WIN32
 #include "sqlite3cpp_export.h"
+#pragma warning(push)
+#pragma warning(disable: 4251)
 #else
 #define SQLITE3CPP_EXPORT
 #endif
@@ -166,6 +168,8 @@ private:
 };
 
 } // namespace sqlite3cpp
-
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "sqlite3cpp.ipp"
