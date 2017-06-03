@@ -32,6 +32,11 @@
 #include "sqlite3cpp.h"
 #include <iostream>
 #include <limits>
+#include <cstdio>
+
+static void trace_print(void *ctx, char const *stmt) {
+  printf("%s\n", stmt);
+}
 
 struct DBTest : ::testing::Test {
     DBTest()
@@ -41,6 +46,8 @@ struct DBTest : ::testing::Test {
 
     virtual void SetUp() {
         m_basic_dataset.reset(new sqlite3cpp::database(":memory:"));
+
+        // sqlite3_trace(m_basic_dataset->get(), &trace_print, nullptr);
 
         auto c = basic_dataset().make_cursor();
         c.executescript(
