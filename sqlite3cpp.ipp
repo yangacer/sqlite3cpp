@@ -144,10 +144,10 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 }
 
 template <typename T, typename ... Args>
-void bind_to_stmt(sqlite3_stmt *stmt, int index, T val, Args&& ... args)
+void bind_to_stmt(sqlite3_stmt *stmt, int index, T&& val, Args&& ... args)
 {
     int ec = 0;
-    if(0 != (ec = bind_val(stmt, index, val)))
+    if(0 != (ec = bind_val(stmt, index, std::forward<T>(val))))
         throw error(ec);
     bind_to_stmt(stmt, index+1, std::forward<Args>(args)...);
 }
