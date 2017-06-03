@@ -75,9 +75,11 @@ struct aggregate;
 C_STYLE_DELETER(sqlite3, sqlite3_close);
 C_STYLE_DELETER(sqlite3_stmt, sqlite3_finalize);
 
-struct SQLITE3CPP_EXPORT error : std::exception {
+struct error : std::exception {
     error(int code) noexcept : code(code) {}
-    char const *what() const noexcept;
+    char const *what() const noexcept {
+      return sqlite3_errstr(code);
+    }
     int code;
 };
 

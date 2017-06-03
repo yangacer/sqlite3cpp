@@ -37,11 +37,6 @@
 
 namespace sqlite3cpp {
 
-
-char const *error::what() const noexcept {
-    return sqlite3_errstr(code);
-}
-
 /**
  * row_iter impl
  */
