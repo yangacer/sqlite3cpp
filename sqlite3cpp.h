@@ -38,8 +38,11 @@
 #include <functional>
 #include <exception>
 #include "stringpiece.h"
+#ifdef _WIN32
 #include "sqlite3cpp_export.h"
-
+#else
+#define SQLITE3CPP_EXPORT
+#endif
 extern "C" {
 #include "sqlite3.h"
 }
