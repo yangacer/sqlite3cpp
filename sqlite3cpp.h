@@ -35,9 +35,14 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include <functional>
 #include <exception>
-#include "sqlite3.h"
 #include "stringpiece.h"
+#include "sqlite3cpp_export.h"
+
+extern "C" {
+#include "sqlite3.h"
+}
 
 #ifndef SQLITE_DETERMINISTIC
 #define SQLITE_DETERMINISTIC 0
@@ -65,13 +70,13 @@ struct aggregate;
 C_STYLE_DELETER(sqlite3, sqlite3_close);
 C_STYLE_DELETER(sqlite3_stmt, sqlite3_finalize);
 
-struct error : std::exception {
+struct SQLITE3CPP_EXPORT error : std::exception {
     error(int code) noexcept : code(code) {}
     char const *what() const noexcept;
     int code;
 };
 
-struct row
+struct SQLITE3CPP_EXPORT row
 {
     template<typename ... Cols>
     std::tuple<Cols...> to() const;
@@ -82,7 +87,7 @@ private:
     sqlite3_stmt *m_stmt;
 };
 
-struct row_iter
+struct SQLITE3CPP_EXPORT row_iter
 {
     row_iter &operator++();
     bool operator == (row_iter const &i) const noexcept;
@@ -97,7 +102,7 @@ private:
     row m_row;
 };
 
-struct cursor
+struct SQLITE3CPP_EXPORT cursor
 {
     template<typename ... Args>
     cursor &execute(std::string const &sql, Args&& ... args);
@@ -118,7 +123,7 @@ private:
     std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
 };
 
-struct database
+struct SQLITE3CPP_EXPORT database
 {
     using xfunc_t = std::function<void(sqlite3_context*, int, sqlite3_value **)>;
     using xfinal_t = std::function<void(sqlite3_context*)>;
