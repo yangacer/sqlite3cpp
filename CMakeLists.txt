@@ -35,7 +35,7 @@ HunterGate(
   SHA1 "3f7dd82d1eb47633ea01a9f7bbcc51b0e8ada1d9"
   )
 
-project(sqlite3cpp VERSION 0.1.1)
+project(sqlite3cpp VERSION 0.2.0)
 
 hunter_add_package(GTest)
 
