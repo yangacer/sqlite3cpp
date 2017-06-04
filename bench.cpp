@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     using std::function;
     using opt_act_t = function<function<void()>(int idx, int argc, char **argv)>;
 
-    struct opt {
+    struct option {
         char const *opt;
         char const *cmt;
         opt_act_t act;
@@ -114,21 +114,21 @@ int main(int argc, char **argv) {
         return [&options]() {
             using namespace std;
             cout << "Usage:" << endl;
-            for(int j=0; j < sizeof(options)/sizeof(opt); ++j) {
-                cout << "\t" << options[j].cmt << endl;
+            for(auto const &op : options) {
+                cout << "\t" << op.cmt << endl;
             }
         };
     };
 
-    options[sizeof(options)/sizeof(opt)].act = help;
+    options[sizeof(options)/sizeof(option) - 1].act = help;
 
-    for(int i=1; i < argc; ++i) {
-        for(int j=0; j < sizeof(options)/sizeof(opt); ++j) {
-            if (strcmp(argv[i], options[j].opt)) {
-                continue;
-            }
-            options[j].act(i, argc, argv)();
+    for (int i = 1; i < argc; ++i) {
+      for (auto const &op : options) {
+        if (strcmp(argv[i], op.opt)) {
+          continue;
         }
+        op.act(i, argc, argv)();
+      }
     }
 
     return 0;
