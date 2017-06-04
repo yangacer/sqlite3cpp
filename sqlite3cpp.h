@@ -38,12 +38,10 @@
 #include <functional>
 #include <exception>
 #include "stringpiece.h"
-#ifdef _WIN32
 #include "sqlite3cpp_export.h"
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4251)
-#else
-#define SQLITE3CPP_EXPORT
 #endif
 extern "C" {
 #include "sqlite3.h"
