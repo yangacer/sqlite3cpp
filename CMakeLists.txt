@@ -14,21 +14,37 @@ find_package(GTest CONFIG REQUIRED)
 
 configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
 
+include(GenerateExportHeader)
 set(SOURCE sqlite3cpp.cpp stringpiece.cc)
+set(PUBHDR sqlite3cpp.h sqlite3cpp.ipp stringpiece.h ${PROJECT_BINARY_DIR}/sqlite3cpp_export.h)
+
 add_library(sqlite3cpp SHARED ${SOURCE})
+generate_export_header(sqlite3cpp)
+# NOTE(acer) For sqlite3cpp_export.h
+include_directories(${PROJECT_BINARY_DIR})
 target_link_libraries(sqlite3cpp PUBLIC sqlite3)
 set_target_properties(sqlite3cpp PROPERTIES
   CXX_STANDARD 14
-  PUBLIC_HEADER "sqlite3cpp.h;sqlite3cpp.ipp;stringpiece.h")
+  PUBLIC_HEADER "${PUBHDR}")
 
 if(MSVC)
-  add_custom_target(sqlite3_genlib ALL lib /DEF:win\\sqlite3.def /OUT:${PROJECT_BINARY_DIR}\\sqlite3.lib
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-  include(GenerateExportHeader)
-  generate_export_header(sqlite3cpp)
-  # NOTE(acer) Include P_B_DIR for sqlite3cpp_export.h
-  include_directories(win ${PROJECT_BINARY_DIR})
+  # TODO(acer): Download specific versoin of sqlite3 via cmake external project
   link_directories(${PROJECT_BINARY_DIR})
+  include_directories(win)
+  # TODO: ARM target
+  if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    # 64bit
+    configure_file(win/x64/sqlite3.dll ${PROJECT_BINARY_DIR}/sqlite3.dll COPYONLY)
+    # Generate sqlite3.lib from sqlite3.def
+    add_custom_target(sqlite3_genlib ALL lib /DEF:win\\sqlite3.def /MACHINE:x64 /OUT:${PROJECT_BINARY_DIR}\\sqlite3.lib
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  else()
+    # 32bit
+    configure_file(win/x86/sqlite3.dll ${PROJECT_BINARY_DIR}/sqlite3.dll COPYONLY)
+    # Generate sqlite3.lib from sqlite3.def
+    add_custom_target(sqlite3_genlib ALL lib /DEF:win\\sqlite3.def /MACHINE:X86 /OUT:${PROJECT_BINARY_DIR}\\sqlite3.lib
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  endif()
 endif()
 
 
@@ -42,11 +58,9 @@ install(TARGETS sqlite3cpp
   RUNTIME DESTINATION lib CONFIGURATIONS Release
   PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
 
-if(NOT MSVC)
-  add_executable(bench bench.cpp)
-  set_target_properties(bench PROPERTIES CXX_STANDARD 14)
-  target_link_libraries(bench sqlite3cpp)
-endif()
+add_executable(bench bench.cpp)
+set_target_properties(bench PROPERTIES CXX_STANDARD 14)
+target_link_libraries(bench sqlite3cpp)
 #
 # Coversall configuration
 
