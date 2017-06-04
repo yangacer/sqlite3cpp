@@ -56,7 +56,22 @@ set_target_properties(sqlite3cpp PROPERTIES
   CXX_STANDARD 14
   PUBLIC_HEADER "${PUBHDR}")
 
+add_executable(gtest gtest.cpp)
+set_target_properties(gtest
+  PROPERTIES CXX_STANDARD 14)
+target_link_libraries(gtest PUBLIC GTest::main sqlite3cpp )
+
+install(TARGETS sqlite3cpp
+  LIBRARY DESTINATION lib CONFIGURATIONS Release
+  RUNTIME DESTINATION lib CONFIGURATIONS Release
+  PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
+
+add_executable(bench bench.cpp)
+set_target_properties(bench PROPERTIES CXX_STANDARD 14)
+target_link_libraries(bench sqlite3cpp)
+
 if(MSVC)
+  set_target_properties(gtest PROPERTIES LINK_FLAGS "/ignore:4099")
   # TODO(acer): Download specific versoin of sqlite3 via cmake external project
   link_directories(${PROJECT_BINARY_DIR})
   include_directories(win)
@@ -77,19 +92,6 @@ if(MSVC)
 endif()
 
 
-add_executable(gtest gtest.cpp)
-set_target_properties(gtest
-  PROPERTIES CXX_STANDARD 14)
-target_link_libraries(gtest PUBLIC GTest::main sqlite3cpp )
-
-install(TARGETS sqlite3cpp
-  LIBRARY DESTINATION lib CONFIGURATIONS Release
-  RUNTIME DESTINATION lib CONFIGURATIONS Release
-  PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
-
-add_executable(bench bench.cpp)
-set_target_properties(bench PROPERTIES CXX_STANDARD 14)
-target_link_libraries(bench sqlite3cpp)
 #
 # Coversall configuration
 
