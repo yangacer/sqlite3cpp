@@ -32,16 +32,16 @@
  ******************************************************************************/
 #pragma once
 
+#include <cstdint>
+#include <exception>
+#include <functional>
 #include <memory>
 #include <string>
-#include <cstdint>
-#include <functional>
-#include <exception>
-#include "stringpiece.h"
 #include "sqlite3cpp_export.h"
+#include "stringpiece.h"
 #ifdef _WIN32
 #pragma warning(push)
-#pragma warning(disable: 4251)
+#pragma warning(disable : 4251)
 #endif
 extern "C" {
 #include "sqlite3.h"
@@ -51,10 +51,10 @@ extern "C" {
 #define SQLITE_DETERMINISTIC 0
 #endif
 
-#define C_STYLE_DELETER(T, F) \
-    struct T##_deleter {\
-        void operator()(T* mem) const { F(mem); } \
-    }
+#define C_STYLE_DELETER(T, F)                 \
+  struct T##_deleter {                        \
+    void operator()(T *mem) const { F(mem); } \
+  }
 
 namespace sqlite3cpp {
 
@@ -74,100 +74,95 @@ C_STYLE_DELETER(sqlite3, sqlite3_close);
 C_STYLE_DELETER(sqlite3_stmt, sqlite3_finalize);
 
 struct error : std::exception {
-    error(int code) noexcept : code(code) {}
-    char const *what() const noexcept {
-      return sqlite3_errstr(code);
-    }
-    int code;
+  error(int code) noexcept : code(code) {}
+  char const *what() const noexcept { return sqlite3_errstr(code); }
+  int code;
 };
 
-struct SQLITE3CPP_EXPORT row
-{
-    template<typename ... Cols>
-    std::tuple<Cols...> to() const;
-    sqlite3_stmt *get() const noexcept { return m_stmt; }
-private:
-    friend struct row_iter;
-    row() : m_stmt(nullptr) {}
-    sqlite3_stmt *m_stmt;
+struct SQLITE3CPP_EXPORT row {
+  template <typename... Cols>
+  std::tuple<Cols...> to() const;
+  sqlite3_stmt *get() const noexcept { return m_stmt; }
+
+ private:
+  friend struct row_iter;
+  row() : m_stmt(nullptr) {}
+  sqlite3_stmt *m_stmt;
 };
 
-struct SQLITE3CPP_EXPORT row_iter
-{
-    row_iter &operator++();
-    bool operator == (row_iter const &i) const noexcept;
-    bool operator != (row_iter const &i) const noexcept;
-    row const &operator*() const noexcept { return m_row; }
-    row const *operator->() const noexcept { return &m_row; }
-private:
-    friend struct cursor;
-    row_iter() noexcept : m_csr(nullptr) {}
-    row_iter(cursor &csr) noexcept;
-    cursor *m_csr;
-    row m_row;
+struct SQLITE3CPP_EXPORT row_iter {
+  row_iter &operator++();
+  bool operator==(row_iter const &i) const noexcept;
+  bool operator!=(row_iter const &i) const noexcept;
+  row const &operator*() const noexcept { return m_row; }
+  row const *operator->() const noexcept { return &m_row; }
+
+ private:
+  friend struct cursor;
+  row_iter() noexcept : m_csr(nullptr) {}
+  row_iter(cursor &csr) noexcept;
+  cursor *m_csr;
+  row m_row;
 };
 
-struct SQLITE3CPP_EXPORT cursor
-{
-    template<typename ... Args>
-    cursor &execute(std::string const &sql, Args&& ... args);
+struct SQLITE3CPP_EXPORT cursor {
+  template <typename... Args>
+  cursor &execute(std::string const &sql, Args &&... args);
 
-    cursor &executescript(std::string const &sql);
+  cursor &executescript(std::string const &sql);
 
-    row_iter begin() noexcept { return row_iter(*this); }
-    row_iter end() noexcept { return row_iter(); }
+  row_iter begin() noexcept { return row_iter(*this); }
+  row_iter end() noexcept { return row_iter(); }
 
-    sqlite3_stmt *get() const noexcept { return m_stmt.get(); }
+  sqlite3_stmt *get() const noexcept { return m_stmt.get(); }
 
-private:
-    void step();
-    friend struct row_iter;
-    friend struct database;
-    cursor(database const &db) noexcept;
-    sqlite3 *m_db;
-    std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
+ private:
+  void step();
+  friend struct row_iter;
+  friend struct database;
+  cursor(database const &db) noexcept;
+  sqlite3 *m_db;
+  std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
 };
 
-struct SQLITE3CPP_EXPORT database
-{
-    using xfunc_t = std::function<void(sqlite3_context*, int, sqlite3_value **)>;
-    using xfinal_t = std::function<void(sqlite3_context*)>;
-    using xreset_t = std::function<void()>;
+struct SQLITE3CPP_EXPORT database {
+  using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
+  using xfinal_t = std::function<void(sqlite3_context *)>;
+  using xreset_t = std::function<void()>;
 
-    database(std::string const &urn);
+  database(std::string const &urn);
 
-    cursor make_cursor() const noexcept;
-    sqlite3 *get() const noexcept { return m_db.get(); }
+  cursor make_cursor() const noexcept;
+  sqlite3 *get() const noexcept { return m_db.get(); }
 
-    template<typename FUNC>
-    void create_scalar(std::string const &name,
-                       FUNC func,
-                       int flags=SQLITE_UTF8 | SQLITE_DETERMINISTIC);
+  template <typename FUNC>
+  void create_scalar(std::string const &name, FUNC func,
+                     int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
-    template<typename AG>
-    void create_aggregate(std::string const &name,
-                          int flags=SQLITE_UTF8 | SQLITE_DETERMINISTIC);
+  template <typename AG>
+  void create_aggregate(std::string const &name,
+                        int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
-    std::string version() const;
-private:
+  std::string version() const;
 
-    struct aggregate_wrapper_t {
-        xfunc_t step;
-        xfinal_t fin;
-        xreset_t reset;
-        xreset_t release;
-    };
+ private:
+  struct aggregate_wrapper_t {
+    xfunc_t step;
+    xfinal_t fin;
+    xreset_t reset;
+    xreset_t release;
+  };
 
-    static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);
-    static void dispose(void *user_data);
-    static void step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv);
-    static void final_ag(sqlite3_context *ctx);
-    static void dispose_ag(void *user_data);
+  static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+  static void dispose(void *user_data);
+  static void step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+  static void final_ag(sqlite3_context *ctx);
+  static void dispose_ag(void *user_data);
 
-    std::unique_ptr<sqlite3, sqlite3_deleter> m_db;
+  std::unique_ptr<sqlite3, sqlite3_deleter> m_db;
 };
 
-} // namespace sqlite3cpp
+}  // namespace sqlite3cpp
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
