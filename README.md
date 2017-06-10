@@ -196,6 +196,6 @@ for(auto const &row : c) {
 
 <!-- links -->
 [badge.Travis]: https://api.travis-ci.org/yangacer/sqlite3cpp.svg?branch=master
-[badge.Appveyor]: https://ci.appveyor.com/api/projects/status/yangacer/sqlite3cpp?svg=true&branch=master
+[badge.Appveyor]: https://ci.appveyor.com/api/projects/status/github/yangacer/sqlite3cpp?svg=true&branch=master
 [badge.Coveralls]: https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github
 
