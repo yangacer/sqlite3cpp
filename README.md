@@ -1,6 +1,8 @@
 # sqlite3cpp
 
-[![Build Status](https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master)](https://travis-ci.org/yangacer/sqlite3cpp) [![Coverage Status](https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github)](https://coveralls.io/github/yangacer/sqlite3cpp?branch=master)
+<a target="_blank" href="https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master">![Travis][badge.Travis]</a>
+<a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">![Appveyor][badge.Appveyor]</a>
+<a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">![Coveralls][badge.Coveralls]</a>
 
 A C++ wrapper library for the awsome sqlite3.
 
@@ -191,3 +193,9 @@ for(auto const &row : c) {
 > **WARNING**: Lifetime of sqlite3_stmt * ends when the associated cursor
 > reaching end of results (SQLITE_DONE). Consequntly the pointer becomes a
 > dangling one. Please use it with caution.
+
+<!-- links -->
+[badge.Travis]: https://travis-ci.org/yangacer/sqlite3cpp
+[badge.Appveyor]: https://ci.appveyor.com/api/projects/status/yangacer/sqlite3cpp?svg=true&branch=master
+[badge.Coveralls]: https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github
+
