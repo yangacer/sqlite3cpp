@@ -1,6 +1,6 @@
 # sqlite3cpp
 
-<a target="_blank" href="https://travis-ci.org/yangacer/sqlite3cpp.svg?branch=master">![Travis][badge.Travis]</a>
+<a target="_blank" href="https://travis-ci.org/yangacer/sqlite3cpp">![Travis][badge.Travis]</a>
 <a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">![Appveyor][badge.Appveyor]</a>
 <a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">![Coveralls][badge.Coveralls]</a>
 
@@ -195,7 +195,7 @@ for(auto const &row : c) {
 > dangling one. Please use it with caution.
 
 <!-- links -->
-[badge.Travis]: https://travis-ci.org/yangacer/sqlite3cpp
+[badge.Travis]: https://api.travis-ci.org/yangacer/sqlite3cpp.svg?branch=master
 [badge.Appveyor]: https://ci.appveyor.com/api/projects/status/yangacer/sqlite3cpp?svg=true&branch=master
 [badge.Coveralls]: https://coveralls.io/repos/yangacer/sqlite3cpp/badge.svg?branch=master&service=github
 
