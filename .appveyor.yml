@@ -1,0 +1,27 @@
+image:
+  - Visual Studio 2015
+
+build:
+  verbodity: detailed
+
+configuration:
+  - Debug
+
+branches:
+  only:
+    - master
+
+install:
+  # Install ninja
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-win.zip"
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=C:\projects\deps\ninja;%PATH%
+  - ninja --version
+
+build_script:
+  - mkdir build
+  - cd build
+  - cmake .. -G Ninja
+  - ninja
+  - ninja test
