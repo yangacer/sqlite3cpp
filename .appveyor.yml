@@ -20,6 +20,11 @@ install:
   - set PATH=C:\projects\deps\ninja;%PATH%
   - ninja --version
 
+before_build:
+  - if "%platform%" == "x86" (call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat")
+  - if "%platform%" == "x64" (call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64)
+  - cd C:\projects\sqlite3cpp
+
 build_script:
   - mkdir build
   - cd build
