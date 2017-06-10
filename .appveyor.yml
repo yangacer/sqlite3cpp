@@ -1,15 +1,16 @@
 image:
   - Visual Studio 2015
 
-build:
-  verbodity: detailed
-
 configuration:
   - Debug
 
 branches:
   only:
     - master
+
+platform:
+  - x86
+  - x64
 
 install:
   # Install ninja
