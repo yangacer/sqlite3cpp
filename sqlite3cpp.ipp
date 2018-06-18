@@ -29,7 +29,6 @@
  *
  ******************************************************************************/
 #include <type_traits>
-#include <utility>
 
 namespace sqlite3cpp {
 namespace detail {
@@ -37,12 +36,16 @@ namespace detail {
 template <int>
 struct placeholder_tmpl {};
 
-template<int... Ints>
-using indexes = std::integer_sequence<int, Ints...>;
-
+template <int...>
+struct indexes {
+  typedef indexes type;
+};
+template <int Max, int... Is>
+struct make_indexes : make_indexes<Max - 1, Max - 1, Is...> {};
+template <int... Is>
+struct make_indexes<0, Is...> : indexes<Is...> {};
 template <int Max>
-using make_indexes_t = std::make_integer_sequence<int, Max>;
-// typename make_indexes<Max>::type;
+using make_indexes_t = typename make_indexes<Max>::type;
 }
 }  // namespace sqlite3cpp::detail
 
