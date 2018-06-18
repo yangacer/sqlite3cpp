@@ -30,7 +30,7 @@ sudo make install
 
 ### Hello, World!
 
-> Compile with: g++ -std=c++11 -o hello hello.cpp -lsqlite3cpp
+> Compile with: g++ -std=c++14 -o hello hello.cpp -lsqlite3cpp
 
 ```cpp
 #include <iostream>
