@@ -1,8 +1,8 @@
 # sqlite3cpp
 
-<a target="_blank" href="https://travis-ci.org/yangacer/sqlite3cpp">Linux: ![Travis][badge.Travis]</a>
-<a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">Windows: ![Appveyor][badge.Appveyor]</a>
-<a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">Tests: ![Coveralls][badge.Coveralls]</a>
+<a target="_blank" href="https://travis-ci.org/yangacer/sqlite3cpp">![Travis][badge.Travis]</a>
+<a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">![Appveyor][badge.Appveyor]</a>
+<a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">![Coveralls][badge.Coveralls]</a>
 
 A C++ wrapper library for the awsome sqlite3.
 
