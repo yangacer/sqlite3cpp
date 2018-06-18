@@ -320,7 +320,7 @@ TEST_F(DBTest, error_handle) {
     FAIL() << "Expect throw";
   } catch (error const &e) {
     EXPECT_EQ(SQLITE_ERROR, e.code);
-    EXPECT_STREQ("SQL logic error or missing database", e.what());
+    EXPECT_STREQ("SQL logic error", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
@@ -330,7 +330,7 @@ TEST_F(DBTest, error_handle) {
     FAIL() << "Expect throw";
   } catch (error const &e) {
     EXPECT_EQ(SQLITE_ERROR, e.code);
-    EXPECT_STREQ("SQL logic error or missing database", e.what());
+    EXPECT_STREQ("SQL logic error", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
@@ -339,7 +339,7 @@ TEST_F(DBTest, error_handle) {
     c.execute("select * from T", 123);  // invalid bind
   } catch (error const &e) {
     EXPECT_EQ(SQLITE_RANGE, e.code);
-    EXPECT_STREQ("bind or column index out of range", e.what());
+    EXPECT_STREQ("column index out of range", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
@@ -366,7 +366,7 @@ TEST_F(DBTest, throw_in_custom_function) {
     c.execute("select length_error();");
   } catch (sqlite3cpp::error const &e) {
     EXPECT_EQ(SQLITE_ABORT, e.code);
-    EXPECT_STREQ("callback requested query abort", e.what());
+    EXPECT_STREQ("query aborted", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
@@ -386,7 +386,7 @@ TEST_F(DBTest, logic_error_in_aggregate) {
     c.execute("select throw_in_step(a) from T");
   } catch (sqlite3cpp::error const &e) {
     EXPECT_EQ(SQLITE_ABORT, e.code);
-    EXPECT_STREQ("callback requested query abort", e.what());
+    EXPECT_STREQ("query aborted", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
@@ -405,7 +405,7 @@ TEST_F(DBTest, logic_error_in_aggregate) {
     c.execute("select throw_in_final(a) from T");
   } catch (sqlite3cpp::error const &e) {
     EXPECT_EQ(SQLITE_ABORT, e.code);
-    EXPECT_STREQ("callback requested query abort", e.what());
+    EXPECT_STREQ("query aborted", e.what());
   } catch (...) {
     FAIL() << "sqlite3cpp::error should be caught";
   }
