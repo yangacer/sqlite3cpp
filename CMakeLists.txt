@@ -73,28 +73,6 @@ add_executable(bench bench.cpp)
 set_target_properties(bench PROPERTIES CXX_STANDARD 14)
 target_link_libraries(bench sqlite3cpp)
 
-# if(MSVC)
-#   set_target_properties(gtest PROPERTIES LINK_FLAGS "/ignore:4099")
-#   # TODO(acer): Download specific versoin of sqlite3 via cmake external project
-#   link_directories(${PROJECT_BINARY_DIR})
-#   include_directories(win)
-#   # TODO: ARM target
-#   if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-#     # 64bit
-#     configure_file(win/x64/sqlite3.dll ${PROJECT_BINARY_DIR}/sqlite3.dll COPYONLY)
-#     # Generate sqlite3.lib from sqlite3.def
-#     add_custom_target(sqlite3_genlib ALL lib /DEF:win\\sqlite3.def /MACHINE:x64 /OUT:${PROJECT_BINARY_DIR}\\sqlite3.lib
-#       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-#   else()
-#     # 32bit
-#     configure_file(win/x86/sqlite3.dll ${PROJECT_BINARY_DIR}/sqlite3.dll COPYONLY)
-#     # Generate sqlite3.lib from sqlite3.def
-#     add_custom_target(sqlite3_genlib ALL lib /DEF:win\\sqlite3.def /MACHINE:X86 /OUT:${PROJECT_BINARY_DIR}\\sqlite3.lib
-#       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-#   endif()
-# endif()
-
-
 #
 # Coversall configuration
 
