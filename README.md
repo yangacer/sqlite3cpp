@@ -14,8 +14,10 @@ https://github.com/yangacer/sqlite3cpp
 
 ## Get Started
 
-Require cmake at least version 3.0.
+### Requirements
 
+- CMake 3.0+
+- A C++17 compatible compiler (VS 2017, clang 6.0+, or gcc 7.0+)
 
 ### Install
 ```shell
@@ -30,7 +32,7 @@ sudo make install
 
 ### Hello, World!
 
-> Compile with: g++ -std=c++11 -o hello hello.cpp -lsqlite3cpp
+> Compile with: g++ -std=c++17 -o hello hello.cpp -lsqlite3cpp
 
 ```cpp
 #include <iostream>
@@ -52,10 +54,7 @@ int main() {
 
     char const *query = "select msg from T where msg like ? and num > ?";
     for(auto const &row : c.execute(query, "%World%", 0) {
-        string msg;
-        int num;
-
-        std::tie(msg, num) = row.to<string, int>();
+        auto [ msg, num ] = row.to<string, int>();
         std::cout << "msg: " << msg << " num: " << num << std::endl;
     }
 
@@ -66,21 +65,6 @@ int main() {
 
 ## Features
 
-
-- Query with range for-loop and typed parameter binding
-
-```cpp
-char const *query = "select * from T where a > ? and a < ? and b like ?";
-string pattern = "test%";
-
-for(auto const &row : c.execute(query, 1, 3, pattern)) {
-    int a; std::string b;
-    std::tie(a, b) = row.to<int, std::string>();
-
-    // do something with a or b
-}
-
-```
 
 - Create SQL scalar function with C++ lambda
 
@@ -111,8 +95,7 @@ db.create_scalar("mutiply", [](int x, int y) {
 char const *query = "select a, mutiply(a,a) from T;";
 
 for(auto const &row : c.execute(query)) {
-    int a, b;
-    std::tie(a, b) = row.to<int, int>();
+    auto [ a, b ] = row.to<int, int>();
 
     // ...
 }
@@ -144,10 +127,23 @@ db.create_aggregate<stdev>("stdev");
 // Invoke the stdev aggregate in SQL
 char const *query = "select stdev(a) from T";
 for(auto const &row : csr.execute(query)) {
-    double a;
-    std::tie(a) = row.to<double>();
+    auto [a] = row.to<double>();
     // EXPECT_DOUBLE_EQ(0.81649658092772603, a);
 }
+```
+
+- Query with range for-loop and typed parameter binding
+
+```cpp
+char const *query = "select * from T where a > ? and a < ? and b like ?";
+string pattern = "test%";
+
+for(auto const &row : c.execute(query, 1, 3, pattern)) {
+    auto [a, b] = row.to<int, std::string>();
+
+    // do something with a or b
+}
+
 ```
 
 ## Usage Mapping

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * The BSD 3-Clause License
  *
- * Copyright (c) 2017, Acer Yun-Tse Yang All rights reserved.
+ * Copyright (c) 2019, Acer Yun-Tse Yang All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -43,8 +43,10 @@ namespace sqlite3cpp {
 row_iter::row_iter(cursor &csr) noexcept : m_csr(&csr) {
   if (!m_csr->get())
     m_csr = nullptr;
-  else
+  else {
     m_row.m_stmt = m_csr->get();
+    m_row.m_db = m_csr->m_db;
+  }
 }
 
 row_iter &row_iter::operator++() {

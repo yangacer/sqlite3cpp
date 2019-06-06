@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
       {"-rr",
        "-rr <seq|rand>\tScan testdata with specified pattern (sequential or "
        "random) in ref semantic.",
-       scan<sqlite3cpp::string_ref>()},
+       scan<std::string_view>()},
       {"-h", "-h\tPrint usage.", {}}};
 
   opt_act_t help = [&options](int, int, char **) {

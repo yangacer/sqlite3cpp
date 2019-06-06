@@ -1,7 +1,7 @@
 /*****************************************************************************
  * The BSD 3-Clause License
  *
- * Copyright (c) 2017, Acer Yun-Tse Yang All rights reserved.
+ * Copyright (c) 2019, Acer Yun-Tse Yang All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -36,9 +36,10 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include "sqlite3cpp_export.h"
-#include "stringpiece.h"
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable : 4251)
@@ -57,8 +58,6 @@ extern "C" {
   }
 
 namespace sqlite3cpp {
-
-using string_ref = re2::StringPiece;
 
 /**
  * Forwarded decls
@@ -80,14 +79,43 @@ struct error : std::exception {
 };
 
 struct SQLITE3CPP_EXPORT row {
+  // Retrieve tuple of row values from this row e.g.
+  //
+  // database db(":memory:");
+  // cursor csr = db.make_cursor();
+  // char const* query = "select IntColumn, StrColumn from MyTable";
+  //
+  // for(auto const& row : c.execute(query)) {
+  //   auto [x,y] = row.to<int, std::string>();
+  // }
+  //
+  // Values are **converted** to types specified in template parameters. The
+  // conversion is built-in in sqlite3 as described in
+  // https://www.sqlite.org/c3ref/column_blob.html
+  //
+  // The sqlite3cpp provides **references** to row values by
+  //
+  // auto [s] = row.to<std::string_view>();
+  //
+  // Be caution that those references are expired after advancing row_iter.
+  //
+  // Retrieving value as string demands allocations in sqlite3. Even
+  // std::string_view could introduce allocation if conversion was needed. When
+  // OOM occurs, sqlite3cpp will raise exceptions of type sqlite3cpp::error.
+  // If exceptions are not preferred, one can use std::optional<std::string> or
+  // std::optional<std::stirng_view> as type parameters such that no exceptions
+  // shall be raised as of OOM.
   template <typename... Cols>
   std::tuple<Cols...> to() const;
+
+  // Get underlying sqlite3_stmt pointer.
   sqlite3_stmt *get() const noexcept { return m_stmt; }
 
  private:
   friend struct row_iter;
-  row() : m_stmt(nullptr) {}
-  sqlite3_stmt *m_stmt;
+  row() = default;
+  sqlite3_stmt *m_stmt = nullptr;
+  sqlite3 *m_db = nullptr;
 };
 
 struct SQLITE3CPP_EXPORT row_iter {
@@ -99,21 +127,38 @@ struct SQLITE3CPP_EXPORT row_iter {
 
  private:
   friend struct cursor;
-  row_iter() noexcept : m_csr(nullptr) {}
+  row_iter() noexcept {}
   row_iter(cursor &csr) noexcept;
-  cursor *m_csr;
+  cursor *m_csr = nullptr;
   row m_row;
 };
 
 struct SQLITE3CPP_EXPORT cursor {
+  // Execute a single SQL statement with binded arguments.
+  //
+  // database db(":memory:");
+  // cursor csr = db.make_cursor();
+  // csr.execute("insert into MyTable values(?)", 123);
+  //
+  // Binded text types, i.e. string, string_view, char const*, are referenced by
+  // row_iter and cursor. They need to be valid until next call to |execute()|,
+  // cursor reaches end of life.
+  //
+  // Only poisitioned binding is supported currently. Named
+  // binding is not supported yet.
   template <typename... Args>
   cursor &execute(std::string const &sql, Args &&... args);
 
+  // Execute multiple SQL statements.
   cursor &executescript(std::string const &sql);
 
+  // Row iterator to begin of query results.
   row_iter begin() noexcept { return row_iter(*this); }
+
+  // Row itertor to end of query results (next to the last one of result).
   row_iter end() noexcept { return row_iter(); }
 
+  // Get underlying sqlite3_stmt pointer.
   sqlite3_stmt *get() const noexcept { return m_stmt.get(); }
 
  private:
@@ -130,19 +175,50 @@ struct SQLITE3CPP_EXPORT database {
   using xfinal_t = std::function<void(sqlite3_context *)>;
   using xreset_t = std::function<void()>;
 
+  // Create a database connection to |urn|. |urn| could be `:memory:` or a filename.
+  // |urn| should be encoded in UTF-8.
   database(std::string const &urn);
 
+  // Create a cursor per current database for executing SQL statements.
   cursor make_cursor() const noexcept;
+
+  // Get underlying sqlite3 (database) pointer.
   sqlite3 *get() const noexcept { return m_db.get(); }
 
+  // Create a scalar function in current database. |func| can be lambda or other
+  // std::function<> compatible types. e.g.
+  //
+  // database db(":memory:");
+  // cursor csr = db.make_cursor();
+  //
+  // db.create_scalar("myScalar", [](int x, int y) { return x + y; });
+  // for (auto const &row : csr.execute("select myScalar(1, 1)")) {
+  //   auto [val] = row.to<int>();
+  //   EXPECT_EQ(2, val);
+  // }
+  //
+  // Arity and types of function parameters are deduced automatically. Supported
+  // parameter types are int, int64_t, double, std::string, and
+  // std::string_view.
   template <typename FUNC>
   void create_scalar(std::string const &name, FUNC func,
                      int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
+  // Create an aggregate in current database.
+  // An aggregate is specified in the |AG| type parameter. It must provide
+  // interfaces as follows:
+  //
+  // AG::AG()
+  // void AG::step(T val)
+  // R AG::finalize()
+  //
+  // where T can be int, int64_t, double, std::string, or std::string_view
+  // and R can be int, int64_t, double, std::string.
   template <typename AG>
   void create_aggregate(std::string const &name,
                         int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC);
 
+  // Get version string of sqlite3cpp (not version of sqlite3).
   std::string version() const;
 
  private:

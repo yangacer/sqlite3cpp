@@ -1,24 +1,24 @@
 language: cpp
-dist: trusty
+dist: xenial
 matrix:
   include:
-    # works on Trusty
     - os: linux
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - ubuntu-toolchain-r-test
           packages:
-            - clang-5.0
+            - g++-8
       env:
-        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
 before_install:
     - eval "${MATRIX_EVAL}"
-    - sudo apt-get install libsqlite3-dev cmake valgrind
+    - sudo apt-get install cmake valgrind
 script:
     - export COVERALLS_SERVICE_NAME=travis-ci
     - export COVERALLS_REPO_TOKEN=LBabWqujATyFxhPqivesbRufCubG1GKUc
+    - export GCOV=gcov-8
     - cmake . -DCMAKE_BUILD_TYPE=Debug -DCOVERALLS=ON
     - make
     - make coveralls

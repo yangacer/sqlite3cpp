@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (c) 2017, Acer Yun-Tse Yang All rights reserved.
+ * Copyright (c) 2019, Acer Yun-Tse Yang All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,12 +30,16 @@
  ******************************************************************************/
 #ifdef _WIN32
 #pragma warning(disable : 4819)
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include "gtest/gtest.h"
+#include <cmath>
 #include <cstdio>
 #include <iostream>
 #include <limits>
 #include "sqlite3cpp.h"
+
+[[maybe_unused]]
 static void trace_print(void *ctx, char const *stmt) { printf("%s\n", stmt); }
 
 struct DBTest : ::testing::Test {
@@ -108,7 +112,7 @@ TEST_F(DBTest, supported_types) {
   std::string cpp_str = "cpp string";
 
   char const *str = "cpp ref string";
-  string_ref cpp_ref_str = str;
+  std::string_view cpp_ref_str = str;
 
   c.execute("insert into AllTypes values(?,?,?)", 123, 123.123, c_str);
 
@@ -118,21 +122,17 @@ TEST_F(DBTest, supported_types) {
 
   auto iter = c.execute("select * from AllTypes").begin();
 
-  int i = 0;
-  double d = 0;
-  string_ref s;
-
-  std::tie(i, d, s) = iter->to<int, double, string_ref>();
+  auto [i, d, s] = iter->to<int, double, std::string_view>();
   EXPECT_EQ(123, i);
   EXPECT_EQ(123.123, d);
   EXPECT_STREQ(c_str, s.data());
   ++iter;
 
-  std::tie(i, d, s) = iter->to<int, double, string_ref>();
+  std::tie(i, d, s) = iter->to<int, double, std::string_view>();
   EXPECT_STREQ(cpp_str.c_str(), s.data());
   ++iter;
 
-  std::tie(i, d, s) = iter->to<int, double, string_ref>();
+  std::tie(i, d, s) = iter->to<int, double, std::string_view>();
   EXPECT_STREQ(cpp_ref_str.data(), s.data());
 }
 
@@ -172,7 +172,6 @@ TEST_F(DBTest, query) {
   char const *query = "select * from T where a > ? and a < ? and b like ?";
   std::string pattern = "test%";
 
-  int idx = 0;
   for (auto const &row : c.execute(query, 1, 3, "test%")) {
     int a;
     std::string b;
@@ -183,18 +182,15 @@ TEST_F(DBTest, query) {
   }
 }
 
-TEST_F(DBTest, query_with_string_ref) {
+TEST_F(DBTest, query_with_string_view) {
   using namespace sqlite3cpp;
 
   auto c = basic_dataset().make_cursor();
   char const *query = "select * from T where a > ? and a < ? and b like ?";
   std::string pattern = "test%";
 
-  int idx = 0;
   for (auto const &row : c.execute(query, 1, 3, "test%")) {
-    int a;
-    string_ref b;
-    std::tie(a, b) = row.to<int, string_ref>();
+    auto [a, b] = row.to<int, std::string_view>();
 
     EXPECT_EQ(2, a);
     EXPECT_STREQ("test2", b.data());
@@ -241,8 +237,8 @@ TEST_F(DBTest, create_scalar) {
                                 [](int x, double y) { return (x + 9) / y; });
 
   char const *query =
-      "select plus123(a), mutiply(a,a), minus123(a), strcat123(a), divide(a, "
-      "a) from T;";
+      "select plus123(a), mutiply(a,a), minus123(a), strcat123(a),"
+      "divide(a, a) from T;";
 
   int idx = 0;
   struct {
@@ -255,11 +251,7 @@ TEST_F(DBTest, create_scalar) {
                    {123 + 3, 3 * 3, 3 - 123, "3_123", (3 + 9) / 3.0}};
 
   for (auto const &row : c.execute(query)) {
-    int a, b, c;
-    std::string d;
-    double e;
-
-    std::tie(a, b, c, d, e) = row.to<int, int, int, std::string, double>();
+    auto [a, b, c, d, e] = row.to<int, int, int, std::string, double>();
     EXPECT_EQ(expected[idx].plus, a);
     EXPECT_EQ(expected[idx].mul, b);
     EXPECT_EQ(expected[idx].min, c);
@@ -298,16 +290,35 @@ TEST_F(DBTest, create_aggregate) {
     int m_sum = 0, m_sq_sum = 0;
   };
 
+  struct commaMerge {
+    void step(std::string_view val) {
+      m_res.append(val);
+      m_res.append(",");
+    }
+    std::string finalize() {
+      if (!m_res.empty() && m_res.back() == ',') m_res.resize(m_res.size() - 1);
+      return m_res;
+    }
+    std::string m_res;
+  };
+
   basic_dataset().create_aggregate<stdev>("stdev");
+  basic_dataset().create_aggregate<commaMerge>("commaMerge");
+
   auto c = basic_dataset().make_cursor();
 
-  char const *query = "select stdev(a) from T";
+  std::string query = "select stdev(a) from T";
   for (auto const &row : c.execute(query)) {
-    double a;
-    std::tie(a) = row.to<double>();
-    // XXX Platfomr dependant
+    auto [a] = row.to<double>();
     EXPECT_DOUBLE_EQ(0.81649658092772603, a);
   }
+
+  query = "select commaMerge(b) from T";
+  for (auto const &row : c.execute(query)) {
+    auto [b] = row.to<std::string_view>();
+    EXPECT_EQ("test1,test2,abc,test3", b);
+  }
+
 }
 
 TEST_F(DBTest, error_handle) {

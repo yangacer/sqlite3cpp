@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (c) 2017, Acer Yun-Tse Yang All rights reserved.
+ * Copyright (c) 2019, Acer Yun-Tse Yang All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -84,38 +84,80 @@ void foreach_tuple_element(tuple_type &t, F f) {
 /**
  * Helpers for retrieve column values.
  */
-inline void get_col_val_aux(sqlite3_stmt *stmt, int index, int &val) {
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *, int index,
+                            int &val) {
   val = sqlite3_column_int(stmt, index);
 }
 
-inline void get_col_val_aux(sqlite3_stmt *stmt, int index, int64_t &val) {
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *, int index,
+                            int64_t &val) {
   val = sqlite3_column_int64(stmt, index);
 }
 
-inline void get_col_val_aux(sqlite3_stmt *stmt, int index, double &val) {
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *, int index,
+                            double &val) {
   val = sqlite3_column_double(stmt, index);
 }
 
-inline void get_col_val_aux(sqlite3_stmt *stmt, int index, std::string &val) {
-  val.assign((char const *)sqlite3_column_text(stmt, index),
-             sqlite3_column_bytes(stmt, index));
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
+                            std::string &val) {
+  char const* res = (char const *)sqlite3_column_text(stmt, index);
+  if (!res) {
+    int ec = sqlite3_errcode(db);
+    if (ec != SQLITE_OK)
+      throw error(ec);
+  }
+  val.assign(res, sqlite3_column_bytes(stmt, index));
 }
 
-inline void get_col_val_aux(sqlite3_stmt *stmt, int index, string_ref &val) {
-  val.set((char const *)sqlite3_column_text(stmt, index),
-          sqlite3_column_bytes(stmt, index));
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
+                            std::string_view &val) {
+  char const *res = (char const *)sqlite3_column_text(stmt, index);
+  if (!res) {
+    int ec = sqlite3_errcode(db);
+    if (ec != SQLITE_OK)
+      throw error(ec);
+  }
+  val = std::string_view{
+      (char const *)sqlite3_column_text(stmt, index),
+      (std::string_view::size_type)sqlite3_column_bytes(stmt, index)};
+}
+
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
+                            std::optional<std::string> &val) {
+  char const* res = (char const *)sqlite3_column_text(stmt, index);
+  if (!res) {
+    int ec = sqlite3_errcode(db);
+    if (ec != SQLITE_OK)
+      val.reset();
+  }
+  val = std::string{res,
+                    (std::string::size_type)sqlite3_column_bytes(stmt, index)};
+}
+
+inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
+                            std::optional<std::string_view> &val) {
+  char const *res = (char const *)sqlite3_column_text(stmt, index);
+  if (!res) {
+    int ec = sqlite3_errcode(db);
+    if (ec != SQLITE_OK)
+      val.reset();
+  }
+  val = std::string_view{
+      res, (std::string_view::size_type)sqlite3_column_bytes(stmt, index)};
 }
 
 struct get_col_val {
-  get_col_val(sqlite3_stmt *stmt) : m_stmt(stmt) {}
+  get_col_val(sqlite3_stmt *stmt, sqlite3 *db) : m_stmt(stmt), m_db(db) {}
 
   template <typename T>
   void operator()(T &out, int index) const {
-    get_col_val_aux(m_stmt, index, out);
+    get_col_val_aux(m_stmt, m_db, index, out);
   }
 
  private:
   sqlite3_stmt *m_stmt;
+  sqlite3 *m_db;
 };
 
 /*
@@ -135,7 +177,7 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
   return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
 }
 
-inline int bind_val(sqlite3_stmt *stmt, int index, string_ref const &val) {
+inline int bind_val(sqlite3_stmt *stmt, int index, std::string_view const &val) {
   return sqlite3_bind_text(stmt, index, val.data(), val.size(), SQLITE_STATIC);
 }
 
@@ -164,14 +206,22 @@ inline int get(Type<int>, sqlite3_value **v, int const index) {
   return sqlite3_value_int(v[index]);
 }
 
+inline int64_t get(Type<int64_t>, sqlite3_value **v, int const index) {
+  return sqlite3_value_int64(v[index]);
+}
+
 inline double get(Type<double>, sqlite3_value **v, int const index) {
   return sqlite3_value_double(v[index]);
 }
 
-// XXX string_view ... we need you
 inline std::string get(Type<std::string>, sqlite3_value **v, int const index) {
   return std::string((char const *)sqlite3_value_text(v[index]),
                      (size_t)sqlite3_value_bytes(v[index]));
+}
+
+inline std::string_view get(Type<std::string_view>, sqlite3_value **v, int const index) {
+  return std::string_view((char const *)sqlite3_value_text(v[index]),
+                          (size_t)sqlite3_value_bytes(v[index]));
 }
 
 /**
@@ -278,7 +328,7 @@ template <typename... Cols>
 std::tuple<Cols...> row::to() const {
   // TODO Need optional<int> for NULL or int usage
   std::tuple<Cols...> result;
-  detail::foreach_tuple_element(result, detail::get_col_val(m_stmt));
+  detail::foreach_tuple_element(result, detail::get_col_val(m_stmt, m_db));
   return result;
 }
 

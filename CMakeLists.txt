@@ -1,5 +1,5 @@
 ################################################################################
-#  Copyright (c) 2017, Acer Yun-Tse Yang All rights reserved.
+#  Copyright (c) 2019, Acer Yun-Tse Yang All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -46,8 +46,8 @@ find_package(sqlite3 3.21 CONFIG REQUIRED)
 configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
 
 include(GenerateExportHeader)
-set(SOURCE sqlite3cpp.cpp stringpiece.cc)
-set(PUBHDR sqlite3cpp.h sqlite3cpp.ipp stringpiece.h ${PROJECT_BINARY_DIR}/sqlite3cpp_export.h)
+set(SOURCE sqlite3cpp.cpp)
+set(PUBHDR sqlite3cpp.h sqlite3cpp.ipp ${PROJECT_BINARY_DIR}/sqlite3cpp_export.h)
 
 add_library(sqlite3cpp STATIC ${SOURCE})
 generate_export_header(sqlite3cpp)
@@ -55,12 +55,12 @@ generate_export_header(sqlite3cpp)
 include_directories(${PROJECT_BINARY_DIR})
 target_link_libraries(sqlite3cpp PUBLIC sqlite3::sqlite3)
 set_target_properties(sqlite3cpp PROPERTIES
-  CXX_STANDARD 14
+  CXX_STANDARD 17
   PUBLIC_HEADER "${PUBHDR}")
 
 add_executable(gtest gtest.cpp)
 set_target_properties(gtest
-  PROPERTIES CXX_STANDARD 14)
+  PROPERTIES CXX_STANDARD 17)
 target_link_libraries(gtest GTest::main sqlite3cpp)
 
 install(TARGETS sqlite3cpp
@@ -70,7 +70,7 @@ install(TARGETS sqlite3cpp
   PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
 
 add_executable(bench bench.cpp)
-set_target_properties(bench PROPERTIES CXX_STANDARD 14)
+set_target_properties(bench PROPERTIES CXX_STANDARD 17)
 target_link_libraries(bench sqlite3cpp)
 
 #
