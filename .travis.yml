@@ -8,9 +8,9 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-8
+            - g++-7
       env:
-        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
 
 before_install:
     - eval "${MATRIX_EVAL}"
@@ -18,7 +18,7 @@ before_install:
 script:
     - export COVERALLS_SERVICE_NAME=travis-ci
     - export COVERALLS_REPO_TOKEN=LBabWqujATyFxhPqivesbRufCubG1GKUc
-    - export GCOV=gcov-8
+    - export GCOV=gcov-7
     - cmake . -DCMAKE_BUILD_TYPE=Debug -DCOVERALLS=ON
     - make
     - make coveralls
