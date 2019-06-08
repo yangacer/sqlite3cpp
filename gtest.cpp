@@ -103,6 +103,62 @@ TEST_F(DBTest, insert_many) {
   }
 }
 
+TEST_F(DBTest, exec_from_database) {
+  basic_dataset().executescript(
+    "begin;"
+    "create table TT (a INTEGER);"
+    "insert into TT values (123);"
+    "insert into TT values (456);"
+    "commit;");
+  int expected[2] = {123, 456};
+  int idx = 0;
+  for (auto const &row : basic_dataset().execute("select a from TT")) {
+    auto [a] = row.to<int>();
+    EXPECT_EQ(expected[idx++], a);
+  }
+  basic_dataset().executescript("drop table TT;");
+}
+
+TEST_F(DBTest, transaction) {
+  using namespace sqlite3cpp;
+  {  // without commit
+    auto trns = transaction(basic_dataset());
+    basic_dataset().executescript("create table TT (a);");
+  }
+  auto csr = basic_dataset().execute(
+      "select name from sqlite_master where type='table' and name='TT'");
+  EXPECT_EQ(csr.begin(), csr.end()) << "transaction should default to rollback";
+
+  {  // with commit
+    auto trns = transaction(basic_dataset());
+    basic_dataset().executescript("create table TT (a);");
+    trns.commit();
+  }
+  auto[name] =
+      basic_dataset()
+          .execute(
+              "select name from sqlite_master where type='table' and name='TT'")
+          .begin()
+          ->to<std::string>();
+  EXPECT_EQ(name, "TT");
+  basic_dataset().executescript("drop table TT;");
+
+  { // auto commit
+    transaction::params_t params;
+    params.end_sql = "commit";
+    auto trns = transaction(basic_dataset(), params);
+    basic_dataset().executescript("create table TT (a);");
+  }
+  std::tie(name) =
+      basic_dataset()
+          .execute(
+              "select name from sqlite_master where type='table' and name='TT'")
+          .begin()
+          ->to<std::string>();
+  EXPECT_EQ(name, "TT");
+  basic_dataset().executescript("drop table TT;");
+}
+
 TEST_F(DBTest, supported_types) {
   using namespace sqlite3cpp;
 

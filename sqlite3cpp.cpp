@@ -91,6 +91,28 @@ void cursor::step() {
 }
 
 /**
+ * transaction impl
+ */
+
+transaction::transaction(database &db, transaction::params_t const &params)
+    : m_db(db), m_params(params) {
+  m_db.execute(m_params.begin_sql);
+}
+
+transaction::transaction(database &db) : transaction(db, {}) {}
+
+transaction::~transaction() {
+  try {
+    m_db.execute(m_params.end_sql);
+  } catch (...) {
+  }
+}
+
+void transaction::commit() noexcept {
+  m_params.end_sql = "end";
+}
+
+/**
  * database impl
  */
 database::database(std::string const &urn) {

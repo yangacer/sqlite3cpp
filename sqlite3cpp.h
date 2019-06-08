@@ -172,6 +172,39 @@ struct SQLITE3CPP_EXPORT cursor {
   std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
 };
 
+struct SQLITE3CPP_EXPORT transaction {
+  // A scoped transaction object may benefit some use cases. However, please
+  // note
+  // that commit/rollback may fail per underlying database but we can not throw
+  // exceptions in destructor. As a result, those errors are ignored silently.
+  //
+  // If one has concern about such limitation. The alternative way is using
+  // |executescript| for `begin`, `commit`, `rollback` explicitly.
+
+  struct params_t {
+    std::string begin_sql = "begin";
+    std::string end_sql = "rollback";
+  };
+
+  // Create a transaction that will rollback if no explicit |commit()|.
+  transaction(database &db);
+
+  // Create a transaction with customized params. The |begin_sql| of |params|
+  // will be executed right away. The |end_sql| will be executed in
+  // |~transaction()|.
+  transaction(database &db, params_t const &params);
+  transaction(transaction&&) = default;
+
+  // Commit or rollback this transaction per |params|. Default to rollback.
+  ~transaction();
+
+  // Issue `commit;` or `end;` when this transaction instance being destroyed.
+  void commit() noexcept;
+ private:
+  database &m_db;
+  params_t m_params;
+};
+
 struct SQLITE3CPP_EXPORT database {
   using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
   using xfinal_t = std::function<void(sqlite3_context *)>;
