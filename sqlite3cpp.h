@@ -67,7 +67,6 @@ struct database;
 struct cursor;
 struct row_iter;
 struct row;
-struct aggregate;
 
 C_STYLE_DELETER(sqlite3, sqlite3_close);
 C_STYLE_DELETER(sqlite3_stmt, sqlite3_finalize);
@@ -82,10 +81,9 @@ struct SQLITE3CPP_EXPORT row {
   // Retrieve tuple of row values from this row e.g.
   //
   // database db(":memory:");
-  // cursor csr = db.make_cursor();
   // char const* query = "select IntColumn, StrColumn from MyTable";
   //
-  // for(auto const& row : c.execute(query)) {
+  // for(auto const& row : db.execute(query)) {
   //   auto [x,y] = row.to<int, std::string>();
   // }
   //
@@ -174,12 +172,12 @@ struct SQLITE3CPP_EXPORT cursor {
 
 struct SQLITE3CPP_EXPORT transaction {
   // A scoped transaction object may benefit some use cases. However, please
-  // note
-  // that commit/rollback may fail per underlying database but we can not throw
-  // exceptions in destructor. As a result, those errors are ignored silently.
+  // note that commit/rollback may fail per underlying database but we can not
+  // throw exceptions in destructor. As a result, those errors are ignored
+  // silently.
   //
   // If one has concern about such limitation. The alternative way is using
-  // |executescript| for `begin`, `commit`, `rollback` explicitly.
+  // |executescript| for `begin`, `commit`, and `rollback` explicitly.
 
   struct params_t {
     std::string begin_sql = "begin";
@@ -254,7 +252,7 @@ struct SQLITE3CPP_EXPORT database {
   // R AG::finalize()
   //
   // where T can be int, int64_t, double, std::string, or std::string_view
-  // and R can be int, int64_t, double, std::string.
+  // and R can be int, int64_t, double, or std::string.
   template <typename AG>
   void create_aggregate(std::string const &name,
                         int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC);

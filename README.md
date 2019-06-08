@@ -42,10 +42,8 @@ using namespace sqlite3cpp;
 
 database db(":memory:");
 
-auto csr = db.make_cursor();
-
 // Create table and insert some data
-csr.executescript(
+db.executescript(
   "begin;"
   "create table T (a INT, b TEXT);"
   "insert into T values(1, 'test1');"
@@ -97,7 +95,7 @@ db.create_aggregate<stdev>("stdev");
 
 // Invoke the stdev aggregate in SQL
 char const *query = "select stdev(a) from T";
-for(auto const &row : csr.execute(query)) {
+for(auto const &row : db.execute(query)) {
     auto [a] = row.to<double>();
     // EXPECT_DOUBLE_EQ(0.81649658092772603, a);
 }
@@ -109,7 +107,7 @@ for(auto const &row : csr.execute(query)) {
 char const *query = "select * from T where a > ? and a < ? and b like ?";
 string pattern = "test%";
 
-for(auto const &row : c.execute(query, 1, 3, pattern)) {
+for(auto const &row : db.execute(query, 1, 3, pattern)) {
     auto [a, b] = row.to<int, std::string>();
 
     // do something with a or b
@@ -131,16 +129,14 @@ int main() {
 
     database db(":memory:");
 
-    cursor c = db.make_cursor();
-
-    c.executescript(
+    db.executescript(
       "create table T (msg TEXT, num INTEGER);"
       "insert into T values('Hello, World!', 1);"
       "insert into T values('Hello, sqlite3cpp!', 2);"
       );
 
     char const *query = "select msg from T where msg like ? and num > ?";
-    for(auto const &row : c.execute(query, "%World%", 0) {
+    for(auto const &row : db.execute(query, "%World%", 0) {
         auto [ msg, num ] = row.to<string, int>();
         std::cout << "msg: " << msg << " num: " << num << std::endl;
     }
