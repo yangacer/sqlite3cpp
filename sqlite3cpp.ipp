@@ -56,25 +56,22 @@ namespace sqlite3cpp {
 namespace detail {
 
 /**
- * tuple foreach
+ * tuple enumerate
  */
-template <typename tuple_type, typename F, int Index, int Max>
-struct foreach_tuple_impl {
-  void operator()(tuple_type &t, F f) {
-    f(std::get<Index>(t), Index);
-    foreach_tuple_impl<tuple_type, F, Index + 1, Max>()(t, f);
-  }
-};
+template <class F, class Tuple, int... I>
+constexpr decltype(auto) enumerate_impl(F &&f, Tuple &&t,
+                                        std::integer_sequence<int, I...>) {
+  return (
+      std::invoke(std::forward<F>(f), I, std::get<I>(std::forward<Tuple>(t))),
+      ...);
+}
 
-template <typename tuple_type, typename F, int Max>
-struct foreach_tuple_impl<tuple_type, F, Max, Max> {
-  void operator()(tuple_type &t, F f) { f(std::get<Max>(t), Max); }
-};
-
-template <typename tuple_type, typename F>
-void foreach_tuple_element(tuple_type &t, F f) {
-  foreach_tuple_impl<tuple_type, F, 0,
-                     std::tuple_size<tuple_type>::value - 1>()(t, f);
+template <class F, class Tuple>
+constexpr decltype(auto) enumerate(F &&f, Tuple &&t) {
+  return detail::enumerate_impl(
+      std::forward<F>(f), std::forward<Tuple>(t),
+      std::make_integer_sequence<
+          int, std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
 }
 
 /**
@@ -142,19 +139,6 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
   val = std::string_view{
       res, (std::string_view::size_type)sqlite3_column_bytes(stmt, index)};
 }
-
-struct get_col_val {
-  get_col_val(sqlite3_stmt *stmt, sqlite3 *db) : m_stmt(stmt), m_db(db) {}
-
-  template <typename T>
-  void operator()(T &out, int index) const {
-    get_col_val_aux(m_stmt, m_db, index, out);
-  }
-
- private:
-  sqlite3_stmt *m_stmt;
-  sqlite3 *m_db;
-};
 
 /*
  * Helpers for binding values to sqlite3_stmt.
@@ -322,9 +306,13 @@ namespace sqlite3cpp {
  */
 template <typename... Cols>
 std::tuple<Cols...> row::to() const {
-  // TODO Need optional<int> for NULL or int usage
+  // TODO: Report errors
   std::tuple<Cols...> result;
-  detail::foreach_tuple_element(result, detail::get_col_val(m_stmt, m_db));
+  detail::enumerate(
+      [this](int index, auto &&... tuple_value) {
+        (detail::get_col_val_aux(m_stmt, m_db, index, tuple_value), ...);
+      },
+      result);
   return result;
 }
 
