@@ -49,12 +49,14 @@ std::function<void()> gen_test_data(int index, int argc, char **argv) {
         "drop table if exists T;"
         "create table T (msg TEXT, rand INTEGER);");
 
+    sqlite3cpp::transaction trns(db);
     auto cnt = data_size >> 4;
     for (size_t i = 0; i < cnt; ++i) {
       c.executescript(
           "insert into T values(strftime('%Y-%m-%d %H:%M:%f', 'now'), "
           "random())");
     }
+    trns.commit();
   };
 }
 
