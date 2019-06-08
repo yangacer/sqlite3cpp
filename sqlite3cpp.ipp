@@ -348,6 +348,14 @@ cursor &cursor::execute(std::string const &sql, Args &&... args) {
 /**
  * database impl
  */
+
+template <typename... Args>
+cursor database::execute(std::string const &sql, Args &&... args) {
+  cursor c = make_cursor();
+  c.execute(sql, std::forward<Args>(args)...);
+  return c;
+}
+
 template <typename FUNC>
 void database::create_scalar(std::string const &name, FUNC func, int flags) {
   using traits = detail::function_traits<FUNC>;

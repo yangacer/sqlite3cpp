@@ -134,6 +134,7 @@ struct SQLITE3CPP_EXPORT row_iter {
 };
 
 struct SQLITE3CPP_EXPORT cursor {
+  cursor(cursor &&) = default;
   // Execute a single SQL statement with binded arguments.
   //
   // database db(":memory:");
@@ -152,7 +153,8 @@ struct SQLITE3CPP_EXPORT cursor {
   // Execute multiple SQL statements.
   cursor &executescript(std::string const &sql);
 
-  // Row iterator to begin of query results.
+  // Row iterator to begin of query results. This row_iter becomes invalid after
+  // the cursor it referenced being detroyed.
   row_iter begin() noexcept { return row_iter(*this); }
 
   // Row itertor to end of query results (next to the last one of result).
@@ -185,14 +187,20 @@ struct SQLITE3CPP_EXPORT database {
   // Get underlying sqlite3 (database) pointer.
   sqlite3 *get() const noexcept { return m_db.get(); }
 
+  // Shortcut for calling |cursor::execute|.
+  template <typename... Args>
+  cursor execute(std::string const &sql, Args &&... args);
+
+  // Shortcut for calling |cursor::executescript|.
+  cursor executescript(std::string const &sql);
+
   // Create a scalar function in current database. |func| can be lambda or other
   // std::function<> compatible types. e.g.
   //
   // database db(":memory:");
-  // cursor csr = db.make_cursor();
   //
   // db.create_scalar("myScalar", [](int x, int y) { return x + y; });
-  // for (auto const &row : csr.execute("select myScalar(1, 1)")) {
+  // for (auto const &row : db.execute("select myScalar(1, 1)")) {
   //   auto [val] = row.to<int>();
   //   EXPECT_EQ(2, val);
   // }

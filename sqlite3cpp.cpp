@@ -106,6 +106,12 @@ cursor database::make_cursor() const noexcept { return cursor(*this); }
 
 std::string database::version() const { return SQLITE3CPP_VERSION_STRING; }
 
+cursor database::executescript(std::string const &sql) {
+  cursor c = make_cursor();
+  c.executescript(sql);
+  return c;
+}
+
 void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
   auto *cb = (xfunc_t *)sqlite3_user_data(ctx);
   assert(cb != 0);
