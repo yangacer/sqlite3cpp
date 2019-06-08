@@ -71,7 +71,7 @@ for(auto const &row : c.execute(query)) {
 
 - Create SQL aggregate with functor
 
-Again, sqlite3cpp detects and generate wrapped aggregate for you. You do not
+Again, sqlite3cpp detects and generates wrapped aggregate for you. You do not
 have to specify function prototypes.
 
 ```cpp
