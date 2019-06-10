@@ -309,8 +309,8 @@ std::tuple<Cols...> row::to() const {
   // TODO: Report errors
   std::tuple<Cols...> result;
   detail::enumerate(
-      [this](int index, auto &&... tuple_value) {
-        (detail::get_col_val_aux(m_stmt, m_db, index, tuple_value), ...);
+      [this](int index, auto &&tuple_value) {
+        detail::get_col_val_aux(m_stmt, m_db, index, tuple_value);
       },
       result);
   return result;
