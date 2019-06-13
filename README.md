@@ -4,9 +4,7 @@
 <a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">![Appveyor][badge.Appveyor]</a>
 <a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">![Coveralls][badge.Coveralls]</a>
 
-A C++ wrapper library for the awsome sqlite3.
-
-> **Disclaimer**: It doesn't and won't provide any kind of ORM.
+A C++17 wrapper library for the awsome sqlite3.
 
 ## Source
 
