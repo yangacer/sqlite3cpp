@@ -43,6 +43,9 @@ hunter_add_package(sqlite3)
 find_package(GTest CONFIG REQUIRED)
 find_package(sqlite3 3.21 CONFIG REQUIRED)
 
+# Lib options
+option(SQLITE3CPP_DISABLE_EXCEPTIONS "Disable C++ Exceptions" OFF)
+
 configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
 
 include(GenerateExportHeader)
@@ -70,6 +73,17 @@ add_executable(gtest gtest.cpp)
 set_target_properties(gtest
   PROPERTIES CXX_STANDARD 17)
 target_link_libraries(gtest GTest::main sqlite3cpp)
+
+# Lib exception configuraiton
+if (SQLITE3CPP_DISABLE_EXCEPTIONS)
+  message(WARNING "C++ Exceptions have been disabled")
+  target_compile_definitions(sqlite3cpp PRIVATE SQLITE3CPP_HAVE_EXCEPTIONS=1)
+  if (MSVC)
+    target_compile_options(sqlite3cpp PUBLIC /EHs-c-)
+  else()
+    target_compile_options(sqlite3cpp PUBLIC -fno-exceptions)
+  endif()
+endif()
 
 install(TARGETS sqlite3cpp
   LIBRARY DESTINATION lib CONFIGURATIONS Release

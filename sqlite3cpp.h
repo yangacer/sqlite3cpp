@@ -39,6 +39,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include "sqlite3cpp_export.h"
 #ifdef _WIN32
 #pragma warning(push)
@@ -75,6 +76,20 @@ struct error : std::exception {
   error(int code) noexcept : code(code) {}
   char const *what() const noexcept { return sqlite3_errstr(code); }
   int code;
+};
+
+template<typename T>
+class outcome : private std::variant<T, error> {
+  using base_t = std::variant<T, error>;
+
+ public:
+  outcome(T&& result) : base_t(result) {}
+  outcome(error err) : base_t(err) {}
+  operator bool() const {
+    return base_t::index() == 0;
+  }
+  T&& value() { return std::get<0>(*this); }
+  error reason() { return std::get<1>(*this); }
 };
 
 struct SQLITE3CPP_EXPORT row {

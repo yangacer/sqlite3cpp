@@ -92,6 +92,7 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *, int index,
   val = sqlite3_column_double(stmt, index);
 }
 
+#ifdef SQLITE3CPP_HAVE_EXCEPTIONS
 inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
                             std::string &val) {
   char const* res = (char const *)sqlite3_column_text(stmt, index);
@@ -115,6 +116,7 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
       (char const *)sqlite3_column_text(stmt, index),
       (std::string_view::size_type)sqlite3_column_bytes(stmt, index)};
 }
+#endif // SQLITE3CPP_HAVE_EXCEPTIONS
 
 inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
                             std::optional<std::string> &val) {
@@ -170,10 +172,16 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 }
 
 template <typename T, typename... Args>
-void bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&... args) {
+decltype(auto) bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&... args) {
   int ec = 0;
-  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val)))) throw error(ec);
-  bind_to_stmt(stmt, index + 1, std::forward<Args>(args)...);
+  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val)))) {
+    if constexpr (SQLITE3CPP_HAVE_EXCEPTIONS) {
+      throw error(ec);
+    } else {
+      return outcome(error(ec));
+    }
+  }
+  return bind_to_stmt(stmt, index + 1, std::forward<Args>(args)...);
 }
 
 /**
