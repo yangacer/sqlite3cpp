@@ -289,30 +289,36 @@ TEST_F(DBTest, create_scalar) {
   basic_dataset().create_scalar("strcat123",
                                 [](std::string val) { return val + "_123"; });
 
+  basic_dataset().create_scalar("static_text",
+                                []() { return "StaticText"; });
+
   basic_dataset().create_scalar("divide",
                                 [](int x, double y) { return (x + 9) / y; });
 
   char const *query =
       "select plus123(a), mutiply(a,a), minus123(a), strcat123(a),"
-      "divide(a, a) from T;";
+      "static_text(), divide(a, a) from T;";
 
   int idx = 0;
   struct {
     int plus, mul, min;
     char const *cat;
+    char const *stext;
     double div;
-  } expected[4] = {{123 + 1, 1 * 1, 1 - 123, "1_123", (1 + 9) / 1.0},
-                   {123 + 2, 2 * 2, 2 - 123, "2_123", (2 + 9) / 2.0},
-                   {123 + 2, 2 * 2, 2 - 123, "2_123", (2 + 9) / 2.0},
-                   {123 + 3, 3 * 3, 3 - 123, "3_123", (3 + 9) / 3.0}};
+  } expected[4] = {{123 + 1, 1 * 1, 1 - 123, "1_123", "StaticText", (1 + 9) / 1.0},
+                   {123 + 2, 2 * 2, 2 - 123, "2_123", "StaticText", (2 + 9) / 2.0},
+                   {123 + 2, 2 * 2, 2 - 123, "2_123", "StaticText", (2 + 9) / 2.0},
+                   {123 + 3, 3 * 3, 3 - 123, "3_123", "StaticText", (3 + 9) / 3.0}};
 
   for (auto const &row : c.execute(query)) {
-    auto [a, b, c, d, e] = row.to<int, int, int, std::string, double>();
+    auto[a, b, c, d, e, f] =
+        row.to<int, int, int, std::string, std::string, double>();
     EXPECT_EQ(expected[idx].plus, a);
     EXPECT_EQ(expected[idx].mul, b);
     EXPECT_EQ(expected[idx].min, c);
     EXPECT_EQ(expected[idx].cat, d);
-    EXPECT_EQ(expected[idx].div, e);
+    EXPECT_EQ(expected[idx].stext, e);
+    EXPECT_EQ(expected[idx].div, f);
     idx++;
   }
 }

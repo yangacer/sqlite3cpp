@@ -220,7 +220,7 @@ inline void result(double val, sqlite3_context *ctx) {
 }
 
 inline void result(std::string const &val, sqlite3_context *ctx) {
-  sqlite3_result_text(ctx, val.c_str(), val.size(), SQLITE_TRANSIENT);
+  sqlite3_result_text(ctx, val.data(), val.size(), SQLITE_TRANSIENT);
 }
 
 /**
@@ -242,16 +242,15 @@ R invoke(std::function<R(Args...)> func, int argc, sqlite3_value **argv) {
 
 template <typename R, typename... Args>
 database::xfunc_t make_invoker(std::function<R(Args...)> &&func) {
-  return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    result(invoke(func, argc, argv), ctx);
-  };
-}
-
-template <typename... Args>
-database::xfunc_t make_invoker(std::function<void(Args...)> &&func) {
-  return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    invoke(func, argc, argv);
-  };
+  if constexpr (std::is_void_v<R>) {
+    return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+      invoke(func, argc, argv);
+    };
+  } else {
+    return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+      result(invoke(func, argc, argv), ctx);
+    };
+  }
 }
 
 /**
