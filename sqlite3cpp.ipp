@@ -369,7 +369,10 @@ void database::create_aggregate(std::string const &name, int flags) {
 
   aggregate_wrapper_t *wrapper = new aggregate_wrapper_t;
   AG *inst = new AG;
-  wrapper->reset = [inst]() { *inst = AG(); };
+  wrapper->reset = [inst]() {
+    inst->~AG();
+    new (inst) AG();
+  };
   wrapper->release = [inst]() { delete inst; };
   wrapper->step = make_invoker(bind_this(&AG::step, inst));
   wrapper->fin = [inst](sqlite3_context *ctx) {
