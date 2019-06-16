@@ -49,14 +49,22 @@ include(GenerateExportHeader)
 set(SOURCE sqlite3cpp.cpp)
 set(PUBHDR sqlite3cpp.h sqlite3cpp.ipp ${PROJECT_BINARY_DIR}/sqlite3cpp_export.h)
 
+#
+# Lib sqlite3cpp
 add_library(sqlite3cpp STATIC ${SOURCE})
 generate_export_header(sqlite3cpp)
-# NOTE(acer) For sqlite3cpp_export.h
-include_directories(${PROJECT_BINARY_DIR})
+include_directories(${PROJECT_BINARY_DIR}) # NOTE(acer) For sqlite3cpp_export.h
 target_link_libraries(sqlite3cpp PUBLIC sqlite3::sqlite3)
 set_target_properties(sqlite3cpp PROPERTIES
   CXX_STANDARD 17
   PUBLIC_HEADER "${PUBHDR}")
+
+# Lib RTTI configuration
+if (MSVC)
+  target_compile_options(sqlite3cpp PRIVATE /GR-)
+else()
+  target_compile_options(sqlite3cpp PRIVATE -fno-rtti)
+endif()
 
 add_executable(gtest gtest.cpp)
 set_target_properties(gtest
