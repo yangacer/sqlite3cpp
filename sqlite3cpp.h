@@ -120,8 +120,8 @@ struct SQLITE3CPP_EXPORT row_iter {
   row_iter &operator++();
   bool operator==(row_iter const &i) const noexcept;
   bool operator!=(row_iter const &i) const noexcept;
-  row const &operator*() const noexcept { return m_row; }
-  row const *operator->() const noexcept { return &m_row; }
+  row const &operator*() const noexcept;
+  row const *operator->() const noexcept;
 
  private:
   friend struct cursor;
@@ -151,12 +151,12 @@ struct SQLITE3CPP_EXPORT cursor {
   // Execute multiple SQL statements.
   cursor &executescript(std::string const &sql);
 
-  // Row iterator to begin of query results. This row_iter becomes invalid after
-  // the cursor it referenced being detroyed.
-  row_iter begin() noexcept { return row_iter(*this); }
+  // Row iterator to begin of **reamin** query results. This row_iter becomes
+  // invalid after the cursor it referenced has been detroyed.
+  row_iter begin() noexcept;
 
   // Row itertor to end of query results (next to the last one of result).
-  row_iter end() noexcept { return row_iter(); }
+  row_iter end() noexcept;
 
   // Get underlying sqlite3_stmt pointer.
   sqlite3_stmt *get() const noexcept { return m_stmt.get(); }

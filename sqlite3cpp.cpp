@@ -35,6 +35,11 @@
 #include <stdexcept>
 #include "version.h"
 
+#if !defined(NDEBUG)
+#include <cstdio>
+#define DBG(...) printf(__VA_ARGS__)
+#endif
+
 namespace sqlite3cpp {
 
 /**
@@ -51,9 +56,14 @@ row_iter::row_iter(cursor &csr) noexcept : m_csr(&csr) {
 
 row_iter &row_iter::operator++() {
   m_csr->step();
-  if (!m_csr->get()) m_csr = nullptr;
+  if (!m_csr->get())
+    m_csr = nullptr;
   return *this;
 }
+
+row const &row_iter::operator*() const noexcept { return m_row; }
+
+row const *row_iter::operator->() const noexcept { return &m_row; }
 
 bool row_iter::operator==(row_iter const &i) const noexcept {
   return m_csr == i.m_csr;
@@ -90,6 +100,11 @@ void cursor::step() {
   }
 }
 
+row_iter cursor::begin() noexcept {
+  return row_iter(*this);
+}
+
+row_iter cursor::end() noexcept { return row_iter(); }
 /**
  * transaction impl
  */
