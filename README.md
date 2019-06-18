@@ -10,24 +10,6 @@ A C++17 wrapper library for the awsome sqlite3.
 
 https://github.com/yangacer/sqlite3cpp
 
-## Get Started
-
-### Requirements
-
-- CMake 3.0+
-- A C++17 compatible compiler (VS 2017, clang 6.0+, or gcc 7.0+)
-
-### Install
-```shell
-git clone https://github.com/yangacer/sqlite3cpp
-cd sqlite3cpp
-mkdir build
-cd build
-cmake .. # -DCMAKE_BUILD_TYPE=Release
-make
-sudo make install
-```
-
 ## Features
 
 - Create SQL scalar function with C++ lambda
@@ -111,6 +93,39 @@ for(auto const &row : db.execute(query, 1, 3, pattern)) {
     // do something with a or b
 }
 
+```
+
+- RAII Transaction
+
+```cpp
+database db(":memory:");
+try {
+  transaction trns(db);
+  // Execute SQL statements within the transaction
+  trns.commit();
+} catch (error &e) {
+  // The transaction is rollback if an exception was raised
+  cerr << e.what() << endl;
+}
+```
+> Note: End transaction in destructor of the transaction object may trigger failures. It's error-prone to throw exceptions as of destruction. Current implementation just catch all exceptions then destruct silently.
+
+## Get Started
+
+### Requirements
+
+- CMake 3.0+
+- A C++17 compatible compiler (VS 2017, clang 6.0+, or gcc 7.0+)
+
+### Install
+```shell
+git clone https://github.com/yangacer/sqlite3cpp
+cd sqlite3cpp
+mkdir build
+cd build
+cmake .. # -DCMAKE_BUILD_TYPE=Release
+make
+sudo make install
 ```
 
 ### Hello, World!
