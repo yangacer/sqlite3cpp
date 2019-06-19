@@ -320,6 +320,8 @@ std::tuple<Cols...> row::to() const {
  */
 template <typename... Args>
 cursor &cursor::execute(std::string const &sql, Args &&... args) {
+  // TODO: Support rebind params (which means step() error for not binded params
+  // should be ignored.
   sqlite3_stmt *stmt = 0;
   int ec = 0;
 

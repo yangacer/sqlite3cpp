@@ -196,6 +196,7 @@ TEST_F(DBTest, row_iter) {
   using namespace sqlite3cpp;
 
   auto c = basic_dataset().make_cursor();
+  EXPECT_EQ(c.begin(), c.end());
 
   c.executescript("create table Empty (a);");
   c.execute("select * from Empty");
@@ -207,7 +208,19 @@ TEST_F(DBTest, row_iter) {
 
   EXPECT_NE(c.begin(), c.end());
   EXPECT_EQ(++c.begin(), c.end());
-  EXPECT_EQ(c.begin(), c.end());
+  EXPECT_NE(c.begin(), c.end());
+
+  { // iterator invalidation
+    auto beg1 = c.begin();
+    auto beg2 = beg1;
+    auto beg3 = c.begin(); // call begin again to invalid other iterators
+    EXPECT_EQ(beg1, c.end());
+    EXPECT_EQ(++beg1, c.end()) << "invalid row_iter can't advance";
+    EXPECT_EQ(beg2, c.end());
+    EXPECT_TRUE(beg3.is_valid());
+    EXPECT_FALSE(beg1.is_valid());
+    EXPECT_FALSE(beg2.is_valid());
+  }
 }
 
 TEST_F(DBTest, bind_null) {

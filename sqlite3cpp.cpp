@@ -42,11 +42,17 @@
 
 namespace sqlite3cpp {
 
+namespace detail {
+// An tag type for row iter session
+struct session {};
+} // namespace detail
+
 /**
  * row_iter impl
  */
-row_iter::row_iter(cursor &csr) noexcept : m_csr(&csr) {
-  if (!m_csr->get())
+row_iter::row_iter(cursor &csr, std::weak_ptr<void> session) noexcept
+    : m_csr(&csr), m_session(std::move(session)) {
+  if (m_session.expired())
     m_csr = nullptr;
   else {
     m_row.m_stmt = m_csr->get();
@@ -55,8 +61,9 @@ row_iter::row_iter(cursor &csr) noexcept : m_csr(&csr) {
 }
 
 row_iter &row_iter::operator++() {
-  m_csr->step();
-  if (!m_csr->get())
+  if (!m_session.expired())
+    m_csr->step();
+  if (m_session.expired())
     m_csr = nullptr;
   return *this;
 }
@@ -66,13 +73,14 @@ row const &row_iter::operator*() const noexcept { return m_row; }
 row const *row_iter::operator->() const noexcept { return &m_row; }
 
 bool row_iter::operator==(row_iter const &i) const noexcept {
-  return m_csr == i.m_csr;
+  return m_session.lock() == i.m_session.lock();
 }
 
 bool row_iter::operator!=(row_iter const &i) const noexcept {
   return !(*this == i);
 }
 
+bool row_iter::is_valid() const noexcept { return !m_session.expired(); }
 /**
  * cursor impl
  */
@@ -91,7 +99,7 @@ void cursor::step() {
 
   switch (ec) {
     case SQLITE_DONE:
-      m_stmt.reset();
+      m_session.reset();
       break;
     case SQLITE_ROW:
       break;
@@ -101,10 +109,21 @@ void cursor::step() {
 }
 
 row_iter cursor::begin() noexcept {
-  return row_iter(*this);
+  if (!m_stmt)
+    return {};
+  // NOTE(acer): There is actually a redundant reset as we invoke
+  // |execute().begin()|. It's possible to be eliminated, though I keep it for
+  // ensuring non-query SQL can be executed right away after calling |execute()|.
+  // Besides, results of previous |step()| should be cached by sqlite3 s.t.
+  // performance penality would be minor.
+  m_session.reset((void *)new detail::session,
+                  [](void *s) { delete (detail::session *)s; });
+  sqlite3_reset(m_stmt.get());
+  step();
+  return row_iter(*this, m_session);
 }
 
-row_iter cursor::end() noexcept { return row_iter(); }
+row_iter cursor::end() noexcept { return {}; }
 /**
  * transaction impl
  */

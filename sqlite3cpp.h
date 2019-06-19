@@ -122,13 +122,14 @@ struct SQLITE3CPP_EXPORT row_iter {
   bool operator!=(row_iter const &i) const noexcept;
   row const &operator*() const noexcept;
   row const *operator->() const noexcept;
-
+  bool is_valid() const noexcept;
  private:
   friend struct cursor;
   row_iter() noexcept {}
-  row_iter(cursor &csr) noexcept;
+  row_iter(cursor &csr, std::weak_ptr<void> session) noexcept;
   cursor *m_csr = nullptr;
   row m_row;
+  std::weak_ptr<void> m_session;
 };
 
 struct SQLITE3CPP_EXPORT cursor {
@@ -168,6 +169,7 @@ struct SQLITE3CPP_EXPORT cursor {
   cursor(database const &db) noexcept;
   sqlite3 *m_db;
   std::unique_ptr<sqlite3_stmt, sqlite3_stmt_deleter> m_stmt;
+  std::shared_ptr<void> m_session;
 };
 
 struct SQLITE3CPP_EXPORT transaction {
