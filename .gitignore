@@ -1,3 +1,7 @@
 build
 version.h
 .*.sw*
+GTAGS
+GRTAGS
+GPATH
+gtags.files
