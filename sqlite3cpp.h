@@ -195,7 +195,7 @@ struct SQLITE3CPP_EXPORT transaction {
   // will be executed right away. The |end_sql| will be executed in
   // |~transaction()|.
   transaction(database &db, params_t const &params);
-  transaction(transaction&&) = default;
+  transaction(transaction &&) = default;
 
   // Commit or rollback this transaction per |params|. Default to rollback.
   ~transaction();
@@ -262,15 +262,15 @@ struct SQLITE3CPP_EXPORT database {
   std::string version() const;
 
  private:
-   using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
-   using xfinal_t = std::function<void(sqlite3_context *)>;
-   using xreset_t = std::function<void()>;
+  using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
+  using xfinal_t = std::function<void(sqlite3_context *)>;
+  using xreset_t = std::function<void()>;
 
-   struct aggregate_wrapper_t {
-     xfunc_t step;
-     xfinal_t fin;
-     xreset_t reset;
-     xreset_t release;
+  struct aggregate_wrapper_t {
+    xfunc_t step;
+    xfinal_t fin;
+    xreset_t reset;
+    xreset_t release;
   };
 
   static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);

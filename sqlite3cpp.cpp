@@ -45,7 +45,7 @@ namespace sqlite3cpp {
 namespace detail {
 // An tag type for row iter session
 struct session {};
-} // namespace detail
+}  // namespace detail
 
 /**
  * row_iter impl
@@ -61,10 +61,8 @@ row_iter::row_iter(cursor &csr, std::weak_ptr<void> session) noexcept
 }
 
 row_iter &row_iter::operator++() {
-  if (!m_session.expired())
-    m_csr->step();
-  if (m_session.expired())
-    m_csr = nullptr;
+  if (!m_session.expired()) m_csr->step();
+  if (m_session.expired()) m_csr = nullptr;
   return *this;
 }
 
@@ -115,13 +113,12 @@ void cursor::step() {
 }
 
 row_iter cursor::begin() noexcept {
-  if (!m_stmt)
-    return {};
+  if (!m_stmt) return {};
   // NOTE(acer): There is actually a redundant reset as we invoke
   // |execute().begin()|. It's possible to be eliminated, though I keep it for
-  // ensuring non-query SQL can be executed right away after calling |execute()|.
-  // Besides, results of previous |step()| should be cached by sqlite3 s.t.
-  // performance penality would be minor.
+  // ensuring non-query SQL can be executed right away after calling
+  // |execute()|. Besides, results of previous |step()| should be cached by
+  // sqlite3 s.t. performance penality would be minor.
   m_session.reset((void *)new detail::session,
                   [](void *s) { delete (detail::session *)s; });
   sqlite3_reset(m_stmt.get());
@@ -148,9 +145,7 @@ transaction::~transaction() {
   }
 }
 
-void transaction::commit() noexcept {
-  m_params.end_sql = "end";
-}
+void transaction::commit() noexcept { m_params.end_sql = "end"; }
 
 /**
  * database impl

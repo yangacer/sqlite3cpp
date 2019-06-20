@@ -37,20 +37,20 @@ namespace detail {
 template <int>
 struct placeholder_tmpl {};
 
-template<int... Ints>
+template <int... Ints>
 using indexes = std::integer_sequence<int, Ints...>;
 
-template<int Max>
+template <int Max>
 using make_indexes_t = std::make_integer_sequence<int, Max>;
-}
-}  // namespace sqlite3cpp::detail
+}  // namespace detail
+}  // namespace sqlite3cpp
 
 // custome placeholders
 namespace std {
 template <int N>
 struct is_placeholder<sqlite3cpp::detail::placeholder_tmpl<N>>
     : integral_constant<int, N + 1> {};
-}
+}  // namespace std
 
 namespace sqlite3cpp {
 namespace detail {
@@ -94,11 +94,10 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *, int index,
 
 inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
                             std::string &val) {
-  char const* res = (char const *)sqlite3_column_text(stmt, index);
+  char const *res = (char const *)sqlite3_column_text(stmt, index);
   if (!res) {
     int ec = sqlite3_errcode(db);
-    if (ec != SQLITE_OK)
-      throw error(ec);
+    if (ec != SQLITE_OK) throw error(ec);
   }
   val.assign(res, sqlite3_column_bytes(stmt, index));
 }
@@ -108,8 +107,7 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
   char const *res = (char const *)sqlite3_column_text(stmt, index);
   if (!res) {
     int ec = sqlite3_errcode(db);
-    if (ec != SQLITE_OK)
-      throw error(ec);
+    if (ec != SQLITE_OK) throw error(ec);
   }
   val = std::string_view{
       (char const *)sqlite3_column_text(stmt, index),
@@ -118,11 +116,10 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
 
 inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
                             std::optional<std::string> &val) {
-  char const* res = (char const *)sqlite3_column_text(stmt, index);
+  char const *res = (char const *)sqlite3_column_text(stmt, index);
   if (!res) {
     int ec = sqlite3_errcode(db);
-    if (ec != SQLITE_OK)
-      val.reset();
+    if (ec != SQLITE_OK) val.reset();
   }
   val = std::string{res,
                     (std::string::size_type)sqlite3_column_bytes(stmt, index)};
@@ -133,8 +130,7 @@ inline void get_col_val_aux(sqlite3_stmt *stmt, sqlite3 *db, int index,
   char const *res = (char const *)sqlite3_column_text(stmt, index);
   if (!res) {
     int ec = sqlite3_errcode(db);
-    if (ec != SQLITE_OK)
-      val.reset();
+    if (ec != SQLITE_OK) val.reset();
   }
   val = std::string_view{
       res, (std::string_view::size_type)sqlite3_column_bytes(stmt, index)};
@@ -172,8 +168,7 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 template <typename T, typename... Args>
 void bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&... args) {
   int ec = 0;
-  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val))))
-    throw error(ec);
+  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val)))) throw error(ec);
   bind_to_stmt(stmt, index + 1, std::forward<Args>(args)...);
 }
 
@@ -200,7 +195,8 @@ inline std::string get(Type<std::string>, sqlite3_value **v, int const index) {
                      (size_t)sqlite3_value_bytes(v[index]));
 }
 
-inline std::string_view get(Type<std::string_view>, sqlite3_value **v, int const index) {
+inline std::string_view get(Type<std::string_view>, sqlite3_value **v,
+                            int const index) {
   return std::string_view((char const *)sqlite3_value_text(v[index]),
                           (size_t)sqlite3_value_bytes(v[index]));
 }
@@ -296,8 +292,8 @@ typename function_traits<F>::f_type bind_this(F f, C *this_) {
   using traits = function_traits<F>;
   return bind_this(f, this_, make_indexes_t<traits::arity>{});
 }
-}
-}  // namespace sqlite3cpp::detail
+}  // namespace detail
+}  // namespace sqlite3cpp
 
 namespace sqlite3cpp {
 
@@ -362,8 +358,8 @@ void database::create_scalar(std::string const &name, FUNC func, int flags) {
 
 template <typename AG>
 void database::create_aggregate(std::string const &name, int flags) {
-  using detail::make_invoker;
   using detail::bind_this;
+  using detail::make_invoker;
   using detail::result;
   using traits = detail::function_traits<decltype(&AG::step)>;
 
