@@ -68,9 +68,15 @@ row_iter &row_iter::operator++() {
   return *this;
 }
 
-row const &row_iter::operator*() const noexcept { return m_row; }
+row const &row_iter::operator*() const noexcept {
+  assert(is_valid());
+  return m_row;
+}
 
-row const *row_iter::operator->() const noexcept { return &m_row; }
+row const *row_iter::operator->() const noexcept {
+  assert(is_valid());
+  return &m_row;
+}
 
 bool row_iter::operator==(row_iter const &i) const noexcept {
   return m_session.lock() == i.m_session.lock();

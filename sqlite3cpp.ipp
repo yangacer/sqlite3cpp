@@ -157,7 +157,7 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::string const &val) {
   return sqlite3_bind_text(stmt, index, val.c_str(), val.size(), SQLITE_STATIC);
 }
 
-inline int bind_val(sqlite3_stmt *stmt, int index, std::string_view const &val) {
+inline int bind_val(sqlite3_stmt *stmt, int index, std::string_view val) {
   return sqlite3_bind_text(stmt, index, val.data(), val.size(), SQLITE_STATIC);
 }
 
@@ -172,7 +172,8 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 template <typename T, typename... Args>
 void bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&... args) {
   int ec = 0;
-  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val)))) throw error(ec);
+  if (0 != (ec = bind_val(stmt, index, std::forward<T>(val))))
+    throw error(ec);
   bind_to_stmt(stmt, index + 1, std::forward<Args>(args)...);
 }
 
@@ -241,7 +242,7 @@ R invoke(std::function<R(Args...)> func, int argc, sqlite3_value **argv) {
 }
 
 template <typename R, typename... Args>
-database::xfunc_t make_invoker(std::function<R(Args...)> &&func) {
+auto make_invoker(std::function<R(Args...)> &&func) {
   if constexpr (std::is_void_v<R>) {
     return [func](sqlite3_context *ctx, int argc, sqlite3_value **argv) {
       invoke(func, argc, argv);
@@ -305,7 +306,6 @@ namespace sqlite3cpp {
  */
 template <typename... Cols>
 std::tuple<Cols...> row::to() const {
-  // TODO: Report errors
   std::tuple<Cols...> result;
   detail::enumerate(
       [this](int index, auto &&tuple_value) {
@@ -320,8 +320,7 @@ std::tuple<Cols...> row::to() const {
  */
 template <typename... Args>
 cursor &cursor::execute(std::string const &sql, Args &&... args) {
-  // TODO: Support rebind params (which means step() error for not binded params
-  // should be ignored.
+  // TODO: Support rebind params
   sqlite3_stmt *stmt = 0;
   int ec = 0;
 

@@ -123,6 +123,7 @@ struct SQLITE3CPP_EXPORT row_iter {
   row const &operator*() const noexcept;
   row const *operator->() const noexcept;
   bool is_valid() const noexcept;
+
  private:
   friend struct cursor;
   row_iter() noexcept {}
@@ -140,9 +141,9 @@ struct SQLITE3CPP_EXPORT cursor {
   // cursor csr = db.make_cursor();
   // csr.execute("insert into MyTable values(?)", 123);
   //
-  // Binded text types, i.e. string, string_view, char const*, are referenced by
-  // row_iter and cursor. They need to be valid until next call to |execute()|,
-  // cursor reaches end of life.
+  // Binded text types, i.e. string, string_view, and char const*, are
+  // referenced by row_iter and cursor. They need to be valid until next call to
+  // |execute()| or cursor reaches end of life.
   //
   // Only poisitioned binding is supported currently. Named
   // binding is not supported yet.
@@ -152,8 +153,9 @@ struct SQLITE3CPP_EXPORT cursor {
   // Execute multiple SQL statements.
   cursor &executescript(std::string const &sql);
 
-  // Row iterator to begin of **reamin** query results. This row_iter becomes
-  // invalid after the cursor it referenced has been detroyed.
+  // Row iterator to begin query results. This row_iter becomes
+  // invalid after the cursor it referenced has been detroyed or another
+  // |begin()| has been called.
   row_iter begin() noexcept;
 
   // Row itertor to end of query results (next to the last one of result).
@@ -200,18 +202,15 @@ struct SQLITE3CPP_EXPORT transaction {
 
   // Issue `commit;` or `end;` when this transaction instance being destroyed.
   void commit() noexcept;
+
  private:
   database &m_db;
   params_t m_params;
 };
 
 struct SQLITE3CPP_EXPORT database {
-  using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
-  using xfinal_t = std::function<void(sqlite3_context *)>;
-  using xreset_t = std::function<void()>;
-
-  // Create a database connection to |urn|. |urn| could be `:memory:` or a filename.
-  // |urn| should be encoded in UTF-8.
+  // Create a database connection to |urn|. |urn| could be `:memory:` or a
+  // filename. |urn| should be encoded in UTF-8.
   database(std::string const &urn);
 
   // Create a cursor per current database for executing SQL statements.
@@ -263,11 +262,15 @@ struct SQLITE3CPP_EXPORT database {
   std::string version() const;
 
  private:
-  struct aggregate_wrapper_t {
-    xfunc_t step;
-    xfinal_t fin;
-    xreset_t reset;
-    xreset_t release;
+   using xfunc_t = std::function<void(sqlite3_context *, int, sqlite3_value **)>;
+   using xfinal_t = std::function<void(sqlite3_context *)>;
+   using xreset_t = std::function<void()>;
+
+   struct aggregate_wrapper_t {
+     xfunc_t step;
+     xfinal_t fin;
+     xreset_t reset;
+     xreset_t release;
   };
 
   static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);
