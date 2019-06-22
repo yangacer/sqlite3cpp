@@ -78,6 +78,14 @@ TEST(basic, construct) {
   database d(":memory:");
 }
 
+TEST(basic, construct_by_existing_db) {
+  using namespace sqlite3cpp;
+  sqlite3 *db = nullptr;
+  sqlite3_open(":memory:", &db);
+  database d(db);
+  sqlite3_close(db);
+}
+
 TEST_F(DBTest, insert_many) {
   struct record {
     int i;
