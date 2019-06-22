@@ -4,7 +4,25 @@
 <a target="_blank" href="https://ci.appveyor.com/project/yangacer/sqlite3cpp">![Appveyor][badge.Appveyor]</a>
 <a target="_blank" href="https://coveralls.io/github/yangacer/sqlite3cpp?branch=master">![Coveralls][badge.Coveralls]</a>
 
-A C++17 wrapper library for the awsome sqlite3.
+Have a cool C/C++ function and want to use it with SQL?
+
+```cpp
+sqlite3 *db;
+sqlite3cpp::database mydb(db);
+mydb.create_scalar("coolFunc", [](std::string_view input) {
+  // do cool stuff
+  return "done!";
+});
+```
+That's it! Now you can use the `coolFunc` with the same database connection. e.g.
+
+```cpp
+char const *query = "select coolFunc(colA) from Table";
+sqlite3_exec(db, query, 0, 0, 0);
+// or
+mydb.execute(query);
+```
+
 
 ## Source
 

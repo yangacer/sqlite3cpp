@@ -213,6 +213,13 @@ struct SQLITE3CPP_EXPORT database {
   // filename. |urn| should be encoded in UTF-8.
   database(std::string const &urn);
 
+  // Attach to an opened sqlite3 database. Call site is responsible to mangage
+  // life time of the passed pointer |db|. sqlite3cpp does not release the
+  // pointer.
+  database(sqlite3* db);
+
+  ~database();
+
   // Create a cursor per current database for executing SQL statements.
   cursor make_cursor() const noexcept;
 
@@ -279,6 +286,7 @@ struct SQLITE3CPP_EXPORT database {
   static void final_ag(sqlite3_context *ctx);
   static void dispose_ag(void *user_data);
 
+  bool m_owned = true;
   std::unique_ptr<sqlite3, sqlite3_deleter> m_db;
 };
 

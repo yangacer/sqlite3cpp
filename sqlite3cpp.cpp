@@ -159,6 +159,12 @@ database::database(std::string const &urn) {
   m_db.reset(i);
 }
 
+database::database(sqlite3 *db) : m_owned(false), m_db(db) {}
+
+database::~database() {
+  if (!m_owned) m_db.release();
+}
+
 cursor database::make_cursor() const noexcept { return cursor(*this); }
 
 std::string database::version() const { return SQLITE3CPP_VERSION_STRING; }
