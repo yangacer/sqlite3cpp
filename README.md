@@ -6,14 +6,28 @@
 
 Have a cool C/C++ function and want to use it with SQL?
 
+- Use sqlite3cpp directly
+
 ```cpp
-sqlite3 *db;
-sqlite3cpp::database mydb(db);
+sqlite3cpp::database db(":memory:");
 mydb.create_scalar("coolFunc", [](std::string_view input) {
   // do cool stuff
   return "done!";
 });
 ```
+- Also, you can attach to another sqltie3 raw instance
+
+```cpp
+sqlite3 *db = nullptr;
+sqlite3_open(":memory:", &db);
+sqlite3cpp::database mydb(db);
+mydb.create_scalar("coolFunc", [](std::string_view input) {
+  // do cool stuff
+  return "done!";
+});
+sqlite3_close(db);
+```
+
 That's it! Now you can use the `coolFunc` with the same database connection. e.g.
 
 ```cpp
