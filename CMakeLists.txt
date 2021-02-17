@@ -31,8 +31,8 @@ cmake_minimum_required(VERSION 3.8)
 include("cmake/HunterGate.cmake")
 
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.22.16.tar.gz"
-    SHA1 "84153076a3cebf4869c904fa5c93ea309386b583"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.23.294.tar.gz"
+    SHA1 "0dd1ee8723d54a15822519c17a877c1f281fce39"
 )
 
 project(sqlite3cpp VERSION 0.3.0)
@@ -69,7 +69,7 @@ endif()
 add_executable(gtest gtest.cpp)
 set_target_properties(gtest
   PROPERTIES CXX_STANDARD 17)
-target_link_libraries(gtest GTest::main sqlite3cpp)
+target_link_libraries(gtest GTest::gtest_main sqlite3cpp)
 
 install(TARGETS sqlite3cpp
   LIBRARY DESTINATION lib CONFIGURATIONS Release
