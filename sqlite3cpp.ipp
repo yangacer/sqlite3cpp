@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
+#include <cassert>
 #include <type_traits>
 #include <utility>
 
@@ -344,14 +345,13 @@ template <typename FUNC>
 void database::create_scalar(std::string const &name, FUNC func, int flags) {
   using traits = detail::function_traits<FUNC>;
 
-  auto *xfunc_ptr =
-      new xfunc_t(detail::make_invoker(typename traits::f_type(func)));
+  auto xfunc_ptr =
+      std::make_unique<xfunc_t>(detail::make_invoker(typename traits::f_type(func)));
 
   int ec = 0;
   if (0 != (ec = sqlite3_create_function_v2(
                 m_db.get(), name.c_str(), (int)traits::arity, flags,
-                (void *)xfunc_ptr, &database::forward, 0, 0, &dispose))) {
-    delete xfunc_ptr;
+                (void *)xfunc_ptr.release(), &database::forward, 0, 0, &dispose))) {
     throw error(ec);
   }
 }
@@ -383,6 +383,13 @@ void database::create_aggregate(std::string const &name, int flags) {
     delete wrapper;
     throw error(ec);
   }
+}
+
+inline void database::dispose(void *user_data) {
+  auto *cb = (xfunc_t *)user_data;
+  assert(cb != 0);
+
+  delete cb;
 }
 
 }  // namespace sqlite3cpp

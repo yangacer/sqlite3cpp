@@ -31,7 +31,6 @@
  *
  ******************************************************************************/
 #include "sqlite3cpp.h"
-#include <cassert>
 #include <stdexcept>
 #include "version.h"
 
@@ -186,13 +185,6 @@ void database::forward(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
   } catch (...) {
     sqlite3_result_error_code(ctx, SQLITE_ABORT);
   }
-}
-
-void database::dispose(void *user_data) {
-  auto *cb = (xfunc_t *)user_data;
-  assert(cb != 0);
-
-  delete cb;
 }
 
 void database::step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv) {

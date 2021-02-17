@@ -281,7 +281,7 @@ struct SQLITE3CPP_EXPORT database {
   };
 
   static void forward(sqlite3_context *ctx, int argc, sqlite3_value **argv);
-  static void dispose(void *user_data);
+  inline static void dispose(void *user_data);
   static void step_ag(sqlite3_context *ctx, int argc, sqlite3_value **argv);
   static void final_ag(sqlite3_context *ctx);
   static void dispose_ag(void *user_data);
