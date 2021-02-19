@@ -6,7 +6,7 @@
 
 Have a cool C/C++ function and want to use it with SQL?
 
-- Use sqlite3cpp directly
+- Use `sqlite3cpp::database` directly,
 
 ```cpp
 sqlite3cpp::database db(":memory:");
@@ -15,7 +15,7 @@ mydb.create_scalar("coolFunc", [](std::string_view input) {
   return "done!";
 });
 ```
-- Also, you can attach to another sqltie3 raw instance
+- or attach `sqlite3cpp::database` to a sqltie3 raw instance
 
 ```cpp
 sqlite3 *db = nullptr;
@@ -28,7 +28,7 @@ mydb.create_scalar("coolFunc", [](std::string_view input) {
 sqlite3_close(db);
 ```
 
-That's it! Now you can use the `coolFunc` with the same database connection. e.g.
+That's it! Now you can use the `coolFunc`. e.g.
 
 ```cpp
 char const *query = "select coolFunc(colA) from Table";
@@ -87,7 +87,6 @@ have to specify function prototypes.
 ```cpp
 // Create a `stdev` aggregate
 struct stdev {
-    stdev() : m_cnt(0), m_sum(0), m_sq_sum(0) {}
     void step(int val) {
         m_cnt ++;
         m_sum += val;
@@ -98,8 +97,8 @@ struct stdev {
         auto avg = (double)m_sum / m_cnt;
         return std::sqrt((double)(m_sq_sum - avg * avg * m_cnt) / (m_cnt -1));
     }
-    size_t m_cnt;
-    int m_sum, m_sq_sum;
+    size_t m_cnt = 0;
+    int m_sum = 0, m_sq_sum = 0;
 };
 
 
@@ -113,7 +112,7 @@ for(auto const &row : db.execute(query)) {
 }
 ```
 
-### Query with range for-loop and typed parameter binding
+### Query with range-based for-loop and typed parameter bindings
 
 ```cpp
 char const *query = "select * from T where a > ? and a < ? and b like ?";
@@ -140,7 +139,7 @@ try {
   cerr << e.what() << endl;
 }
 ```
-> Note: End transaction in destructor of the transaction object may trigger failures. It's error-prone to throw exceptions as of destruction. Current implementation just catch all exceptions then destruct silently.
+> Note: End transaction in destructor of the transaction object may fail as well as throw exception. However, it's error-prone to throw exceptions as of destruction. Current implementation catches all exceptions silently.
 
 ## Get Started
 
