@@ -201,24 +201,32 @@ inline std::string_view get(Type<std::string_view>, sqlite3_value **v,
   return std::string_view((char const *)sqlite3_value_text(v[index]),
                           (size_t)sqlite3_value_bytes(v[index]));
 }
-
 /**
  * Helpers for setting result of scalar functions.
  */
-inline void result(int val, sqlite3_context *ctx) {
-  sqlite3_result_int(ctx, val);
+template <typename T>
+constexpr bool can_convert_to_string_view_v =
+    std::is_convertible_v<std::decay_t<T>, std::string_view>;
+
+template <typename T,
+          std::enable_if_t<can_convert_to_string_view_v<T>, bool> = true>
+inline void result(T const &val, sqlite3_context *ctx) {
+  std::string_view sv(val);
+  sqlite3_result_text(ctx, sv.data(), sv.size(), SQLITE_TRANSIENT);
 }
 
-inline void result(int64_t val, sqlite3_context *ctx) {
-  sqlite3_result_int64(ctx, val);
-}
-
-inline void result(double val, sqlite3_context *ctx) {
-  sqlite3_result_double(ctx, val);
-}
-
-inline void result(std::string const &val, sqlite3_context *ctx) {
-  sqlite3_result_text(ctx, val.data(), val.size(), SQLITE_TRANSIENT);
+template <typename T,
+          std::enable_if_t<!can_convert_to_string_view_v<T>, bool> = true>
+inline void result(T val, sqlite3_context *ctx) {
+  if constexpr (std::is_same_v<T, int>) {
+    sqlite3_result_int(ctx, val);
+  } else if (std::is_same_v<T, int64_t>) {
+    sqlite3_result_int64(ctx, val);
+  } else if (std::is_same_v<T, double>) {
+    sqlite3_result_double(ctx, val);
+  } else {
+    assert(false);
+  }
 }
 
 /**
