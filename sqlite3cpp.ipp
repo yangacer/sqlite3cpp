@@ -167,7 +167,7 @@ inline int bind_val(sqlite3_stmt *stmt, int index, std::nullptr_t _) {
 }
 
 template <typename T, typename... Args>
-void bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&... args) {
+void bind_to_stmt(sqlite3_stmt *stmt, int index, T &&val, Args &&...args) {
   int ec = 0;
   if (0 != (ec = bind_val(stmt, index, std::forward<T>(val)))) throw error(ec);
   bind_to_stmt(stmt, index + 1, std::forward<Args>(args)...);
@@ -324,7 +324,7 @@ std::tuple<Cols...> row::to() const {
  * cursor impl
  */
 template <typename... Args>
-cursor &cursor::execute(std::string const &sql, Args &&... args) {
+cursor &cursor::execute(std::string const &sql, Args &&...args) {
   // TODO: Support rebind params
   sqlite3_stmt *stmt = 0;
   int ec = 0;
@@ -343,7 +343,7 @@ cursor &cursor::execute(std::string const &sql, Args &&... args) {
  */
 
 template <typename... Args>
-cursor database::execute(std::string const &sql, Args &&... args) {
+cursor database::execute(std::string const &sql, Args &&...args) {
   cursor c = make_cursor();
   c.execute(sql, std::forward<Args>(args)...);
   return c;
@@ -353,13 +353,14 @@ template <typename FUNC>
 void database::create_scalar(std::string const &name, FUNC func, int flags) {
   using traits = detail::function_traits<FUNC>;
 
-  auto xfunc_ptr =
-      std::make_unique<xfunc_t>(detail::make_invoker(typename traits::f_type(func)));
+  auto xfunc_ptr = std::make_unique<xfunc_t>(
+      detail::make_invoker(typename traits::f_type(func)));
 
   int ec = 0;
-  if (0 != (ec = sqlite3_create_function_v2(
-                m_db.get(), name.c_str(), (int)traits::arity, flags,
-                (void *)xfunc_ptr.release(), &database::forward, 0, 0, &dispose))) {
+  if (0 !=
+      (ec = sqlite3_create_function_v2(
+           m_db.get(), name.c_str(), (int)traits::arity, flags,
+           (void *)xfunc_ptr.release(), &database::forward, 0, 0, &dispose))) {
     throw error(ec);
   }
 }
