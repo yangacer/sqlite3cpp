@@ -280,7 +280,7 @@ TEST(basic, wrap_function) {
   using namespace std::placeholders;
 
   function<int(int)> c;
-  auto f = detail::make_invoker(move(c));
+  auto f = detail::make_invoker(std::move(c));
 
   struct functor {
     void step(int x) {}

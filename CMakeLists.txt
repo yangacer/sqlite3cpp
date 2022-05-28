@@ -27,37 +27,51 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 ################################################################################
-cmake_minimum_required(VERSION 3.8)
-include("cmake/HunterGate.cmake")
+cmake_minimum_required(VERSION 3.14)
 
-HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.294.tar.gz"
-    SHA1 "0dd1ee8723d54a15822519c17a877c1f281fce39"
-)
+project(sqlite3cpp VERSION 0.3.0 LANGUAGES CXX C)
 
-project(sqlite3cpp VERSION 0.3.0)
-
-hunter_add_package(GTest)
-hunter_add_package(sqlite3)
-
-find_package(GTest CONFIG REQUIRED)
-find_package(sqlite3 3.21 CONFIG REQUIRED)
-
-configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
-
+include(FetchContent)
 include(GenerateExportHeader)
+include(FindThreads)
+
+set(CMAKE_CXX_STANDARD 17)
 set(SOURCE sqlite3cpp.cpp)
 set(PUBHDR sqlite3cpp.h sqlite3cpp.ipp ${PROJECT_BINARY_DIR}/sqlite3cpp_export.h)
 
 #
+# Deps
+FetchContent_Declare(sqlite3 URL "https://www.sqlite.org/2022/sqlite-amalgamation-3380500.zip")
+if (NOT sqlite3_POPULATED)
+  # notice that we do not call `add_subdirectory`, we simply fetch and then
+  # use the subdirectory sources directly.
+  FetchContent_Populate(sqlite3)
+endif()
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG release-1.11.0
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
+
+#
 # Lib sqlite3cpp
-add_library(sqlite3cpp STATIC ${SOURCE})
+add_library(sqlite3cpp)
 generate_export_header(sqlite3cpp)
-include_directories(${PROJECT_BINARY_DIR}) # NOTE(acer) For sqlite3cpp_export.h
-target_link_libraries(sqlite3cpp PUBLIC sqlite3::sqlite3)
-set_target_properties(sqlite3cpp PROPERTIES
-  CXX_STANDARD 17
-  PUBLIC_HEADER "${PUBHDR}")
+target_include_directories(sqlite3cpp
+  PUBLIC
+    ${PROJECT_BINARY_DIR} # NOTE(acer) For sqlite3cpp_export.h
+    $<BUILD_INTERFACE:${sqlite3_SOURCE_DIR}>
+    )
+target_sources(sqlite3cpp
+  PRIVATE ${SOURCE} ${sqlite3_SOURCE_DIR}/sqlite3.c)
+target_link_libraries(sqlite3cpp ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+set_target_properties(sqlite3cpp PROPERTIES PUBLIC_HEADER "${PUBHDR}")
 
 # Lib RTTI configuration
 if (MSVC)
@@ -66,10 +80,9 @@ else()
   target_compile_options(sqlite3cpp PRIVATE -fno-rtti)
 endif()
 
-add_executable(gtest gtest.cpp)
-set_target_properties(gtest
-  PROPERTIES CXX_STANDARD 17)
-target_link_libraries(gtest GTest::gtest_main sqlite3cpp)
+add_executable(unittest gtest.cpp)
+target_include_directories(unittest PRIVATE ${PROJECT_BINARY_DIR})
+target_link_libraries(unittest gtest_main sqlite3cpp)
 
 install(TARGETS sqlite3cpp
   LIBRARY DESTINATION lib CONFIGURATIONS Release
@@ -78,7 +91,6 @@ install(TARGETS sqlite3cpp
   PUBLIC_HEADER DESTINATION include CONFIGURATIONS Release)
 
 add_executable(bench bench.cpp)
-set_target_properties(bench PROPERTIES CXX_STANDARD 17)
 target_link_libraries(bench sqlite3cpp)
 
 #
@@ -98,4 +110,4 @@ if (COVERALLS)
 endif()
 
 enable_testing()
-add_test(unittest ./gtest --gtest_shuffle --gtest_repeat=2)
+add_test(unittests ./unittest --gtest_shuffle --gtest_repeat=2)
